@@ -414,7 +414,10 @@
       <li>붙여넣기로 잡은 <b>기지출액 기초</b>는 그 문서의 기지출액 + 지출액입니다. 그 건이 아직 집행 전이라면 기초값을 낮춰 주세요.</li>
     </ul>
   </div>
-  <div class="dlg-ft"><button class="btn btn-primary" type="button" data-close>닫기</button></div>
+  <div class="dlg-ft">
+    <button class="btn" type="button" data-close id="helpClose">닫기</button>
+    <button class="btn btn-primary" type="button" id="helpStart" hidden>예산 등록하고 시작하기</button>
+  </div>
 </dialog>
 
 <!-- 내보내기 / 가져오기 -->
@@ -442,6 +445,10 @@
       <textarea id="impIn" class="code" placeholder='{"v":1,"budgets":[ ... ]}'></textarea>
     </div>
     <button class="btn btn-sm btn-primary" id="doImpBtn" type="button">가져오기</button>
+
+    <p class="sec-lb">전체 지우기</p>
+    <p class="hint" style="margin:0 0 9px">이 브라우저에 저장된 <b>모든 예산과 집행 내역</b>을 지우고 처음 상태로 되돌립니다. 인수인계하시거나 새 연도로 시작하실 때 쓰세요. 되돌릴 수 없으니 필요하시면 위에서 먼저 내보내 두세요.</p>
+    <button class="btn btn-sm btn-danger" id="resetBtn" type="button">전체 지우고 처음부터</button>
   </div>
 </dialog>
 
@@ -507,7 +514,7 @@
    "mPrev","mNow","mLeft","leftBox","flagBox","budgetTotal","ratioHint",
    "budgetSel","budgetFigs","newBudgetBtn","editBudgetBtn","dropBudgetBtn","shareBtn","budgetDlg","budgetForm","budgetDlgTitle",
    "delBudgetBtn",
-   "helpBtn","helpDlg","shareDlg","bList","expOut","copyExpBtn","impIn","doImpBtn","toast","ilToggle","storeNote",
+   "helpBtn","helpDlg","helpStart","helpClose","resetBtn","shareDlg","bList","expOut","copyExpBtn","impIn","doImpBtn","toast","ilToggle","storeNote",
    "pasteIn","parseBtn","parseNote"].forEach(function(k){ els[k]=$(k); });
 
   function save(){ lsSet(K_B,state.budgets); lsSet(K_L,state.ledger); lsSet(K_A,state.activeId); }
@@ -1039,10 +1046,43 @@
   });
   els.budgetSel.addEventListener("change",disarmBar);
 
-  els.helpBtn.addEventListener("click",function(){ els.helpDlg.showModal(); });
+  function openHelp(first){
+    els.helpStart.hidden=!first;
+    els.helpClose.textContent=first?"나중에":"닫기";
+    els.helpDlg.showModal();
+  }
+  els.helpBtn.addEventListener("click",function(){ openHelp(false); });
+  els.helpStart.addEventListener("click",function(){
+    els.helpDlg.close();
+    setTimeout(function(){ openBudget(null); },150);
+  });
+
+  /* 전체 지우기 — 두 번 눌러야 실행된다 */
+  var resetArmed=false, resetTimer=null;
+  function disarmReset(){
+    resetArmed=false; clearTimeout(resetTimer);
+    els.resetBtn.textContent="전체 지우고 처음부터";
+    els.resetBtn.classList.remove("armed");
+  }
+  els.resetBtn.addEventListener("click",function(){
+    if(!resetArmed){
+      resetArmed=true;
+      els.resetBtn.textContent="정말 지웁니다 — 한 번 더";
+      els.resetBtn.classList.add("armed");
+      clearTimeout(resetTimer); resetTimer=setTimeout(disarmReset,5000);
+      return;
+    }
+    disarmReset();
+    try{ [K_B,K_L,K_A].forEach(function(k){ localStorage.removeItem(k); }); }catch(e){}
+    state.budgets=[]; state.ledger={}; state.activeId=null;
+    clearRecorded(); els.cmdIn.value=""; parse(); renderAll();
+    els.shareDlg.close();
+    toast("전체를 지웠습니다");
+    setTimeout(function(){ openHelp(true); },200);
+  });
 
   els.shareBtn.addEventListener("click",function(){
-    rowArmed=null; clearTimeout(rowTimer);
+    rowArmed=null; clearTimeout(rowTimer); disarmReset();
     renderBList();
     els.expOut.value=JSON.stringify({ v:1, budgets:state.budgets });
     els.impIn.value="";
@@ -1107,7 +1147,7 @@
   parse(); renderAll();
 
   if(active()) els.cmdIn.focus();
-  else openBudget(null);   // 처음 열면 서식 입력창부터
+  else openHelp(true);   // 처음 여는 사람은 사용법부터 본다
 })();
 </script>
 
