@@ -112,11 +112,13 @@
   @media (max-width:560px){.doc-body{padding:22px 18px 26px}}
   .doc-title{font-size:19px;font-weight:500;text-align:center;margin:0 0 24px;letter-spacing:.02em;text-wrap:balance}
   .doc-lead{margin:0 0 20px}
-  .doc-list{margin:0;padding:0;list-style:none}
-  .doc-list li{display:flex}
-  .doc-list .no{flex:none;width:2.1em}
-  .doc-list .lb{flex:none;width:5.6em;letter-spacing:.02em}
-  .doc-list .vl{flex:1;min-width:0;overflow-wrap:anywhere}
+  .doc-list{margin:0;padding:0;list-style:none;display:grid;
+    grid-template-columns:auto auto auto minmax(0,1fr);column-gap:.45em}
+  .doc-list li{display:contents}
+  .doc-list .no{text-align:right}
+  .doc-list .lb{white-space:pre;letter-spacing:.02em}
+  .doc-list .cl{}
+  .doc-list .vl{min-width:0;overflow-wrap:anywhere}
   .doc-num{font-variant-numeric:tabular-nums}
   .doc-attach{margin:24px 0 0}
   .doc-end{margin-left:.9em}
@@ -207,6 +209,14 @@
   .help ul.notes{margin:0;padding-left:18px;font-size:12.5px;line-height:1.7;color:var(--ink-2)}
   .help ul.notes li+li{margin-top:7px}
   .help ul.notes b{color:var(--ink);font-weight:600}
+  .rowitem{display:flex;align-items:center;gap:8px}
+  .rowitem+.rowitem{margin-top:7px}
+  .rowitem .rno{flex:none;width:1.5em;text-align:right;color:var(--ink-3);font-size:12.5px}
+  .rowitem .rlb{flex:none;width:6.5em;font-size:13px}
+  .rowitem .rvl{flex:1;min-width:0;font-size:13px}
+  .rowitem .rauto{flex:1;font-size:12px;color:var(--ink-3);padding:8px 2px}
+  .rowitem.auto .rlb{background:var(--surface)}
+  .doc-mid{margin:0 0 18px;text-align:center}
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(8px);background:var(--ink);color:var(--paper);padding:9px 17px;border-radius:99px;font-size:13px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:90;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px)}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .toast-act{border:0;background:transparent;color:var(--paper);font:inherit;font-weight:600;text-decoration:underline;padding:0;flex:none}
@@ -329,25 +339,16 @@
       <span class="hint">지금까지 집행된 누계입니다. 문서를 붙여넣으면 그 문서의 <b>기지출액 + 지출액</b>으로 잡힙니다 — 붙여넣은 건도 이미 나간 돈이니까요. 여기에 앞으로의 집행이 더해집니다.</span>
 
       <p class="sec-lb">문서 서식</p>
-      <div class="field" style="margin-top:0">
-        <label for="bContent">5. 지출내용</label>
-        <input type="text" id="bContent" placeholder="붙임참조">
-      </div>
+      <div id="bRows"></div>
+
       <div class="field">
-        <label for="bTarget">6. 지출대상 기본값</label>
-        <input type="text" id="bTarget" placeholder="○○로 00(○○동) ○○상사   대표 ○○○">
+        <label for="bAttach">붙임 <span class="hint">— 여러 줄이면 줄바꿈 그대로 씁니다</span></label>
+        <textarea id="bAttach" rows="3" placeholder="세차비 신용카드 전표 1부."></textarea>
       </div>
+
       <div class="field">
-        <label for="bMethod">7. 지출방법</label>
-        <input type="text" id="bMethod" placeholder="카드결제 [결제계좌: ○○ 000-0000-0000-00 ○○동주민센터]">
-      </div>
-      <div class="field">
-        <label for="bAccount">8. 예산과목</label>
-        <textarea id="bAccount" placeholder="정책)○○ 운영  단위)○○  세부)○○ 편성목)일반운영비  통계목)공공운영비"></textarea>
-      </div>
-      <div class="field">
-        <label for="bAttach">붙임 기본형</label>
-        <input type="text" id="bAttach" placeholder="세차비 신용카드 전표 1부.">
+        <label for="bFont">글꼴 <span class="hint">— 화면에 보이는 문서의 글꼴</span></label>
+        <select id="bFont"></select>
       </div>
 
       <details class="adv">
@@ -492,12 +493,24 @@
   function iGa(w){ return hasJong(w)?"이":"가"; }
   function uid(p){ return p+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 
+  function defaultRows(){
+    return [
+      {no:1,label:"예 산 액",sep:": ",kind:"budget",value:"",fmt:"금N원"},
+      {no:2,label:"기지출액",sep:": ",kind:"prev",  value:"",fmt:"금N원"},
+      {no:3,label:"지 출 액",sep:": ",kind:"amount",value:"",fmt:"N(한)"},
+      {no:4,label:"지출잔액",sep:": ",kind:"left",  value:"",fmt:"금N원"},
+      {no:5,label:"지출내용",sep:": ",kind:"text",  value:"붙임참조"},
+      {no:6,label:"지출대상",sep:": ",kind:"text",  value:""},
+      {no:7,label:"지출방법",sep:": ",kind:"text",  value:""},
+      {no:8,label:"예산과목",sep:": ",kind:"text",  value:""}
+    ];
+  }
   var BLANK={
     name:"", budget:0, opening:0,
-    titlePattern:"{지출제목} 지급",
-    leadPattern:"{지출제목}{을를} 아래와 같이 지급하고자 합니다.",
-    content:"붙임참조", target:"", method:"", account:"",
-    attachPattern:"{지출제목} 신용카드 전표 1부."
+    title:"{지출제목} 지급",
+    lead:"{지출제목}{을를} 아래와 같이 지급하고자 합니다.",
+    mid:"", attach:"{지출제목} 신용카드 전표 1부.", endMark:"끝",
+    font:"함초롬바탕", sample:""
   };
 
   /* ---------- 저장 ---------- */
@@ -514,7 +527,7 @@
    "mPrev","mNow","mLeft","leftBox","flagBox","budgetTotal","ratioHint",
    "budgetSel","budgetFigs","newBudgetBtn","editBudgetBtn","dropBudgetBtn","shareBtn","budgetDlg","budgetForm","budgetDlgTitle",
    "delBudgetBtn",
-   "helpBtn","helpDlg","helpStart","helpClose","resetBtn","shareDlg","bList","expOut","copyExpBtn","impIn","doImpBtn","toast","ilToggle","storeNote",
+   "bRows","bFont","helpBtn","helpDlg","helpStart","helpClose","resetBtn","shareDlg","bList","expOut","copyExpBtn","impIn","doImpBtn","toast","ilToggle","storeNote",
    "pasteIn","parseBtn","parseNote"].forEach(function(k){ els[k]=$(k); });
 
   function save(){ lsSet(K_B,state.budgets); lsSet(K_L,state.ledger); lsSet(K_A,state.activeId); }
@@ -582,7 +595,18 @@
     });
   }
 
-  var LABELS=["예 산 액","기지출액","지 출 액","지출잔액","지출내용","지출대상","지출방법","예산과목"];
+  var FONTS=[
+    {n:"함초롬바탕", css:'"함초롬바탕","HCR Batang","바탕",Batang,serif'},
+    {n:"함초롬돋움", css:'"함초롬돋움","HCR Dotum","돋움",Dotum,sans-serif'},
+    {n:"바탕",      css:'"바탕",Batang,"Times New Roman",serif'},
+    {n:"돋움",      css:'"돋움",Dotum,"맑은 고딕","Malgun Gothic",sans-serif'},
+    {n:"굴림",      css:'"굴림",Gulim,sans-serif'},
+    {n:"맑은 고딕",  css:'"맑은 고딕","Malgun Gothic",sans-serif'}
+  ];
+  function fontCss(name){
+    for(var i=0;i<FONTS.length;i++) if(FONTS[i].n===name) return FONTS[i].css;
+    return FONTS[0].css;
+  }
 
   /* 이미 기록한 건이면, 기록 직전의 기지출액으로 문서를 고정한다.
      안 그러면 방금 더한 금액이 기지출액에도 지출액에도 들어가 두 번 빠진다. */
@@ -596,25 +620,34 @@
     var b=active(), p=state.parsed;
     if(!b||!p||p.partial) return null;
     var prev=prevFor(p), budget=digits(b.budget), left=budget-prev-p.amount;
+    var val={budget:budget,prev:prev,amount:p.amount,left:left};
+    var rows=(b.rows||[]).map(function(r){
+      return { no:r.no, label:r.label, sep:r.sep||": ", kind:r.kind,
+               value: r.kind==="text" ? swapTitle(r.value,b.sample,p.name)
+                                      : money(val[r.kind]||0,r.fmt,state.keepOne) };
+    });
     return {
       name:p.name, amount:p.amount, prev:prev, budget:budget, left:left,
-      title:swapTitle(b.titlePattern,b.sample,p.name), lead:swapTitle(b.leadPattern,b.sample,p.name),
-      rows:[
-        "금"+comma(budget)+"원", "금"+comma(prev)+"원",
-        comma(p.amount)+"(금"+toHangul(p.amount,state.keepOne)+"원)",
-        "금"+comma(left)+"원",
-        b.content||"붙임참조",
-        b.target||"", b.method||"", b.account||""
-      ],
-      attach:swapTitle(b.attachPattern,b.sample,p.name)
+      title:swapTitle(b.title,b.sample,p.name),
+      lead:swapTitle(b.lead,b.sample,p.name),
+      mid:swapTitle(b.mid,b.sample,p.name),
+      rows:rows,
+      attach:swapTitle(b.attach,b.sample,p.name),
+      endMark:b.endMark||"끝"
     };
   }
+
   function docText(d,withTitle){
     var L=[];
-    if(withTitle) L.push(d.title,"");
-    L.push(d.lead,"");
-    for(var i=0;i<8;i++) L.push((i+1)+". "+LABELS[i]+": "+d.rows[i]);
-    L.push("", d.attach?"붙임  "+d.attach+"  끝":"끝");
+    if(withTitle&&d.title) L.push(d.title,"");
+    if(d.lead) L.push(d.lead,"");
+    if(d.mid)  L.push(d.mid,"");
+    for(var i=0;i<d.rows.length;i++){
+      var r=d.rows[i];
+      L.push(r.no+". "+r.label+r.sep+r.value);
+    }
+    L.push("");
+    L.push(d.attach ? "붙임  "+d.attach+"  "+d.endMark : d.endMark);
     return L.join("\n");
   }
 
@@ -660,13 +693,20 @@
       var en=$("emptyNew"); if(en) en.addEventListener("click",function(){ openBudget(null); });
       return;
     }
-    var items="";
-    for(var i=0;i<8;i++)
-      items+='<li><span class="no">'+(i+1)+'.</span><span class="lb">'+esc(LABELS[i])+':</span>'+
-             '<span class="vl'+(i<4?' doc-num':'')+'">'+esc(d.rows[i])+'</span></li>';
-    els.docOut.innerHTML='<div class="doc-body"><h3 class="doc-title">'+esc(d.title)+'</h3>'+
-      '<p class="doc-lead">'+esc(d.lead)+'</p><ol class="doc-list">'+items+'</ol>'+
-      '<p class="doc-attach">'+(d.attach?'붙임&nbsp;&nbsp;'+esc(d.attach)+'<span class="doc-end">끝</span>':'끝')+'</p></div>';
+    var items="", b=active();
+    for(var i=0;i<d.rows.length;i++){
+      var r=d.rows[i];
+      items+='<li><span class="no">'+r.no+'.</span>'+
+             '<span class="lb">'+esc(r.label)+'</span><span class="cl">:</span>'+
+             '<span class="vl'+(r.kind!=="text"?' doc-num':'')+'">'+esc(r.value)+'</span></li>';
+    }
+    var nl=function(t){ return esc(t).replace(/\n/g,"<br>"); };
+    els.docOut.innerHTML='<div class="doc-body" style="font-family:'+fontCss(b&&b.font)+'">'+
+      (d.title?'<h3 class="doc-title">'+esc(d.title)+'</h3>':'')+
+      (d.lead?'<p class="doc-lead">'+esc(d.lead)+'</p>':'')+
+      (d.mid?'<p class="doc-mid">'+nl(d.mid)+'</p>':'')+
+      '<ol class="doc-list">'+items+'</ol>'+
+      '<p class="doc-attach">'+(d.attach?'붙임&nbsp;&nbsp;'+nl(d.attach)+'<span class="doc-end">'+esc(d.endMark)+'</span>':esc(d.endMark))+'</p></div>';
   }
 
 
@@ -779,24 +819,78 @@
   });
 
   /* ---------- 기존 문서 분해 ---------- */
-  var NUM_RE=/^\s*([1-8])\s*[.)]\s*(.+?)\s*[::]\s*(.*)$/;
-  var FIELD={1:"budget",2:"prevSpent",3:"amount",4:"left",5:"content",6:"target",7:"method",8:"account"};
+  var NUM_RE=/^\s*(\d{1,2})\s*[.)]\s*(.*?)(\s*[::]\s*)(.*)$/;
+
+  /* 라벨을 보고 그 줄이 어떤 금액인지 가린다.
+     문서마다 말이 달라서(기지출액/기지급액, 지출액/금회지급액, 지출잔액/예산잔액)
+     번호가 아니라 글자로 판단한다. */
+  function kindOf(label){
+    var L=String(label||"").replace(/\s/g,"");
+    if(/잔액/.test(L)) return "left";
+    if(/^기지/.test(L)) return "prev";
+    if(/금회|^지출액|^지급액/.test(L)) return "amount";
+    if(/^예산액$/.test(L)) return "budget";
+    return "text";
+  }
+
+  /* 금액 칸이 어떤 모양이었는지 기억한다. 이것도 문서마다 다르다. */
+  function moneyFmt(v){
+    v=String(v||"").trim();
+    if(/^금[\d,]+\s*원\s*\(/.test(v)) return "금N원(한)";
+    if(/^[\d,]+\s*\(/.test(v))         return "N(한)";
+    return "금N원";
+  }
+  function money(n,fmt,keepOne){
+    var c=comma(n), h="금"+toHangul(n,keepOne)+"원";
+    if(fmt==="금N원(한)") return "금"+c+"원("+h+")";
+    if(fmt==="N(한)")     return c+"("+h+")";
+    return "금"+c+"원";
+  }
 
   function parseDoc(text){
-    var lines=String(text||"").replace(/\r/g,"").split("\n").map(function(s){ return s.trim(); });
-    var o={}, pre=[], i, m, seenNum=false;
+    var lines=String(text||"").replace(/\r/g,"").split("\n");
+    var o={rows:[],pre:[],attach:"",mid:"",title:"",lead:"",endMark:"끝"};
+    var i,m,seenNum=false,inAttach=false,att=[];
     for(i=0;i<lines.length;i++){
-      m=NUM_RE.exec(lines[i]);
-      if(m){ seenNum=true; o[FIELD[+m[1]]]=m[3].trim(); continue; }
-      var a=/^붙\s*임\s*[::]?\s*(.*)$/.exec(lines[i]);
-      if(a){ o.attach=a[1].replace(/\s*끝\s*\.?\s*$/,"").trim(); continue; }
-      if(!seenNum&&lines[i]&&!/^끝\.?$/.test(lines[i])) pre.push(lines[i]);
+      var raw=lines[i].replace(/[ \t]+$/,""), t=raw.trim();
+      if(inAttach){
+        if(!t) continue;
+        att.push(raw);
+        if(/끝\s*\.?$/.test(t)) inAttach=false;
+        continue;
+      }
+      if(/^붙\s*임/.test(t)){
+        att.push(raw); inAttach=!/끝\s*\.?$/.test(t);
+        continue;
+      }
+      m=NUM_RE.exec(t);
+      if(m&&+m[1]>=1&&+m[1]<=20){
+        seenNum=true;
+        var lb=m[2], val=m[4].trim(), k=kindOf(lb);
+        o.rows.push({ no:+m[1], label:lb, sep:m[3], kind:k, raw:val,
+                      value:k==="text"?val:"", fmt:k==="text"?"":moneyFmt(val) });
+        continue;
+      }
+      if(/^끝\s*\.?$/.test(t)){ o.endMark=t; continue; }
+      if(!seenNum&&t) o.pre.push(t);
     }
-    if(pre.length>=2){ o.title=pre[0]; o.lead=pre.slice(1).join(" "); }
-    else if(pre.length===1){
-      if(/합니다\.?$/.test(pre[0])) o.lead=pre[0]; else o.title=pre[0];
+    if(att.length){
+      var blk=att.join("\n");
+      var em=/(끝\s*\.?)\s*$/.exec(blk);
+      if(em) o.endMark=em[1].replace(/\s/g,"");
+      o.attach=blk.replace(/^\s*붙\s*임\s*[::]?[ \t]*/,"").replace(/\s*끝\s*\.?\s*$/,"");
     }
-    o.found=seenNum||!!o.title||!!o.lead;
+    /* 제목 / 본문 한 문장 / 그 사이 줄(【지급내역】 같은 것)을 가른다 */
+    var leadIx=-1;
+    for(i=0;i<o.pre.length;i++) if(/(합니다|하고자|하려)\s*\.?$/.test(o.pre[i])){ leadIx=i; break; }
+    if(leadIx>=0){
+      o.title=o.pre.slice(0,leadIx).join(" ").trim();
+      o.lead=o.pre[leadIx];
+      o.mid=o.pre.slice(leadIx+1).join("\n");
+    } else {
+      o.title=o.pre[0]||""; o.mid=o.pre.slice(1).join("\n");
+    }
+    o.found=seenNum||!!o.lead||!!o.title;
     return o;
   }
 
@@ -833,7 +927,7 @@
   /* 제목 줄이 없는 문서를 위해 본문에서 제목을 되살린다.
      "공용차량 세차비를 아래와 같이 지급하고자 합니다." → "공용차량 세차비 지급" */
   function titleFromLead(lead){
-    var m=/^(.*?)(?:을|를)\s*아래와\s*같이\s*(.*?)(?:하고자|하려|합니다)/.exec(String(lead||"").trim());
+    var m=/^(.*?)(?:을|를)\s*(?:아래와|다음과)\s*같이\s*(.*?)(?:하고자|하려|합니다)/.exec(String(lead||"").trim());
     if(!m) return "";
     return (m[1].trim()+" "+m[2].trim()).replace(/\s+/g," ").trim();
   }
@@ -858,20 +952,27 @@
     if(title)   $("bTitle").value=title;
     if(o.lead)  $("bLead").value=o.lead;
     if(o.attach)$("bAttach").value=o.attach;
-    if(o.content)$("bContent").value=o.content;
-    if(o.target) $("bTarget").value=o.target;
-    if(o.method) $("bMethod").value=o.method;
-    if(o.account)$("bAccount").value=o.account;
+    if(o.mid!==undefined) draft.mid=o.mid;
+    draft.endMark=o.endMark||"끝";
+    if(o.rows&&o.rows.length) renderRows(o.rows);
 
-    var budget=digits(o.budget), prev=digits(o.prevSpent), amt=digits(o.amount);
+    /* 금액은 줄의 라벨로 가려낸다 (기지출액/기지급액, 지출액/금회지급액 …) */
+    var pick=function(k){
+      for(var x=0;x<o.rows.length;x++) if(o.rows[x].kind===k) return digits(o.rows[x].raw);
+      return 0;
+    };
+    var budget=pick("budget"), prev=pick("prev"), amt=pick("amount");
     if(budget) $("bBudget").value=comma(budget);
     var opening=prev+amt;
     if(opening) $("bOpening").value=comma(opening);
 
+    /* 예산 이름은 예산과목 줄의 "세부)" 에서 따온다 */
     if(!$("bName").value.trim()){
-      var nm = o.account ? (/세부\)\s*([^편]+)/.exec(o.account)||[])[1] : "";
-      $("bName").value = (nm||"").trim() ||
-        String(o.title||"").split(/\s+/)[0] || "";
+      var acct="";
+      for(var ri=0;ri<o.rows.length;ri++)
+        if(/예산과목/.test(String(o.rows[ri].label).replace(/\s/g,""))) acct=o.rows[ri].value;
+      var nm=(/세부\)\s*([^,편]+)/.exec(acct)||[])[1]||"";
+      $("bName").value = nm.trim() || String(o.title||"").split(/\s+/)[0] || "";
     }
 
     /* 붙여넣은 문서는 이미 집행이 끝난 건이므로,
@@ -885,7 +986,43 @@
   });
 
   /* ---------- 예산 편집 ---------- */
-  var editingBudget=null, detectedItem="";
+  var editingBudget=null, detectedItem="", draft={mid:"",endMark:"끝"}, draftRows=[];
+
+  /* 문서에서 읽은 줄을 그대로 보여준다. 금액 줄은 자동 계산이라 값 대신 안내만 둔다. */
+  function renderRows(rows){
+    draftRows=rows.map(function(r){ return Object.assign({},r); });
+    var note={budget:"예산액 칸에서 옵니다",prev:"자동 누적됩니다",amount:"입력하신 금액이 들어갑니다",left:"자동 계산됩니다"};
+    var h="";
+    for(var i=0;i<draftRows.length;i++){
+      var r=draftRows[i];
+      h+='<div class="rowitem'+(r.kind!=="text"?" auto":"")+'">'+
+         '<span class="rno">'+r.no+'.</span>'+
+         '<input type="text" class="rlb" value="'+esc(r.label)+'" data-lb="'+i+'" aria-label="'+esc(r.no+'번 이름')+'">'+
+         (r.kind==="text"
+            ? '<input type="text" class="rvl" value="'+esc(r.value||"")+'" data-vl="'+i+'" aria-label="'+esc(r.label)+'">'
+            : '<span class="rauto">'+esc(note[r.kind]||"")+'</span>')+
+         '</div>';
+    }
+    els.bRows.innerHTML=h;
+  }
+  function collectRows(){
+    var lbs=els.bRows.querySelectorAll("[data-lb]"), vls=els.bRows.querySelectorAll("[data-vl]");
+    Array.prototype.forEach.call(lbs,function(el){
+      var r=draftRows[+el.getAttribute("data-lb")];
+      if(r){ r.label=el.value; r.kind=kindOf(el.value)===("text")&&r.kind!=="text"?r.kind:kindOf(el.value); }
+    });
+    Array.prototype.forEach.call(vls,function(el){
+      var r=draftRows[+el.getAttribute("data-vl")];
+      if(r) r.value=el.value;
+    });
+    return draftRows.map(function(r){ return Object.assign({},r); });
+  }
+  function renderFonts(cur){
+    var h="";
+    for(var i=0;i<FONTS.length;i++)
+      h+='<option value="'+esc(FONTS[i].n)+'"'+(FONTS[i].n===cur?" selected":"")+'>'+esc(FONTS[i].n)+'</option>';
+    els.bFont.innerHTML=h;
+  }
   function openBudget(id,openAdv){
     editingBudget=id;
     var b=null;
@@ -894,10 +1031,11 @@
     els.budgetDlgTitle.textContent = b?"예산 설정":"예산 추가";
     $("bName").value=v.name||""; $("bBudget").value=v.budget?comma(v.budget):"";
     $("bOpening").value=v.opening?comma(v.opening):"";
-    $("bTitle").value=v.titlePattern||""; $("bLead").value=v.leadPattern||"";
-    $("bContent").value=v.content||""; $("bTarget").value=v.target||"";
-    $("bMethod").value=v.method||""; $("bAccount").value=v.account||"";
-    $("bAttach").value=v.attachPattern||"";
+    $("bTitle").value=v.title||""; $("bLead").value=v.lead||"";
+    $("bAttach").value=v.attach||"";
+    draft.mid=v.mid||""; draft.endMark=v.endMark||"끝";
+    renderRows(v.rows&&v.rows.length?v.rows:defaultRows());
+    renderFonts(v.font||"함초롬바탕");
     detectedItem="";
     els.pasteIn.value=""; els.parseNote.textContent="";
     els.delBudgetBtn.style.display=b?"":"none";
@@ -918,12 +1056,12 @@
     var sample=detectedItem||guessItem($("bTitle").value,$("bAttach").value,$("bLead").value);
     var data={
       name:name, sample:sample, budget:digits($("bBudget").value), opening:digits($("bOpening").value),
-      titlePattern:$("bTitle").value.trim()||BLANK.titlePattern,
-      leadPattern:$("bLead").value.trim()||BLANK.leadPattern,
-      content:$("bContent").value.trim()||"붙임참조",
-      target:$("bTarget").value.trim(), method:$("bMethod").value.trim(),
-      account:$("bAccount").value.trim(),
-      attachPattern:$("bAttach").value.trim()||BLANK.attachPattern
+      title:$("bTitle").value.trim()||BLANK.title,
+      lead:$("bLead").value.trim()||BLANK.lead,
+      mid:draft.mid||"", endMark:draft.endMark||"끝",
+      attach:$("bAttach").value.replace(/\s+$/,""),
+      font:els.bFont.value||"함초롬바탕",
+      rows:collectRows()
     };
     if(editingBudget){
       for(var i=0;i<state.budgets.length;i++)
@@ -1126,14 +1264,28 @@
     var changed=false;
     for(var i=0;i<state.budgets.length;i++){
       var b=state.budgets[i];
+      /* 라벨을 고정으로 쓰던 시절의 예산을 새 구조로 옮긴다 */
+      if(!b.rows){
+        b.title=b.titlePattern||""; b.lead=b.leadPattern||""; b.mid="";
+        b.attach=b.attachPattern||""; b.endMark="끝"; b.font=b.font||"함초롬바탕";
+        b.rows=defaultRows();
+        b.rows[4].value=b.content||"붙임참조";
+        b.rows[5].value=b.target||"";
+        b.rows[6].value=b.method||"";
+        b.rows[7].value=b.account||"";
+        delete b.titlePattern; delete b.leadPattern; delete b.attachPattern;
+        delete b.content; delete b.target; delete b.method; delete b.account;
+        changed=true;
+      }
+      if(!b.font){ b.font="함초롬바탕"; changed=true; }
       if(!b.sample){
-        b.sample=guessItem(b.titlePattern,b.attachPattern,b.leadPattern)||"";
+        b.sample=guessItem(b.title,b.attach,b.lead)||"";
         if(b.sample) changed=true;
       }
-      var bare=/^\s*\{(?:지출제목|항목)\}\s*\S*\s*$/.test(String(b.titlePattern||""));
-      if(bare||!String(b.titlePattern||"").trim()){
-        var t=titleFromLead(b.leadPattern);
-        if(t){ b.titlePattern=t; changed=true; }
+      var bare=/^\s*\{(?:지출제목|항목)\}\s*\S*\s*$/.test(String(b.title||""));
+      if(bare||!String(b.title||"").trim()){
+        var t=titleFromLead(b.lead);
+        if(t){ b.title=t; changed=true; }
       }
     }
     if(changed) lsSet(K_B,state.budgets);
