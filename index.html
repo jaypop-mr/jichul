@@ -1,0 +1,1042 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="지출 제목과 금액만 한 줄로 치면 지출품의서를 완성합니다.">
+<title>지출의 신</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --paper:#edeff1;--surface:#fff;--surface-2:#f6f7f9;
+    --ink:#161a1e;--ink-2:#4c545d;--ink-3:#7a838d;
+    --line:#d6dbe0;--line-2:#e5e9ed;
+    --accent:#24457a;--accent-ink:#fff;--accent-soft:#e8eef7;
+    --warn:#a5361e;--warn-soft:#fbe9e5;
+    --ok:#2b6650;--ok-soft:#e5f1ec;
+    --spent:#8ea2bc;--r:6px;
+    --sans:"IBM Plex Sans KR","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;
+    --doc:"돋움",Dotum,"맑은 고딕","Malgun Gothic",AppleGothic,"Apple SD Gothic Neo",sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --paper:#0f1215;--surface:#181c20;--surface-2:#1f2429;
+    --ink:#e3e7eb;--ink-2:#a2acb6;--ink-3:#78828c;
+    --line:#2e353c;--line-2:#252b31;
+    --accent:#7ea7de;--accent-ink:#0d141e;--accent-soft:#1a2634;
+    --warn:#e08a72;--warn-soft:#2d1c17;--ok:#75b69a;--ok-soft:#15251e;--spent:#48586e;
+  }}
+  :root[data-theme="dark"]{
+    --paper:#0f1215;--surface:#181c20;--surface-2:#1f2429;
+    --ink:#e3e7eb;--ink-2:#a2acb6;--ink-3:#78828c;
+    --line:#2e353c;--line-2:#252b31;
+    --accent:#7ea7de;--accent-ink:#0d141e;--accent-soft:#1a2634;
+    --warn:#e08a72;--warn-soft:#2d1c17;--ok:#75b69a;--ok-soft:#15251e;--spent:#48586e;
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1140px;margin:0 auto;padding-inline:20px;padding-block:0 52px}
+
+  header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;padding-block:22px 14px}
+  .brand h1{margin:0;font-size:20px;font-weight:600;letter-spacing:-.02em}
+  .brand p{margin:2px 0 0;color:var(--ink-3);font-size:12.5px}
+  .top-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+
+  button{font:inherit;cursor:pointer;border-radius:var(--r);transition:background .12s,border-color .12s,color .12s}
+  button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:7px 13px;font-size:13px;font-weight:500}
+  .btn:hover{background:var(--surface-2);border-color:var(--ink-3)}
+  .btn-primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  .btn-primary:hover{filter:brightness(1.12)}
+  .btn:disabled{opacity:.5;cursor:not-allowed;filter:none}
+  /* 비활성 강조 버튼은 투명도만 낮추면 흰 글씨가 사라진다 — 중립색으로 바꾼다 */
+  .btn-primary:disabled{opacity:1;background:var(--surface-2);border-color:var(--line);color:var(--ink-3)}
+  .btn-sm{padding:4px 9px;font-size:12px}
+  .btn-ghost{border-color:transparent;background:transparent;color:var(--ink-2)}
+  .btn-ghost:hover{background:var(--surface-2);border-color:var(--line);color:var(--ink)}
+  .btn-danger{color:var(--warn)}
+  .btn-danger:hover{background:var(--warn-soft);border-color:var(--warn)}
+  .btn-danger.armed{background:var(--warn);border-color:var(--warn);color:#fff}
+
+  .blist-row{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface-2);flex-wrap:wrap}
+  .blist-row+.blist-row{margin-top:7px}
+  .blist-row.cur{border-color:var(--accent);background:var(--accent-soft)}
+  .blist-row .nm{flex:1;min-width:130px}
+  .blist-row .nm b{display:block;font-size:13.5px;font-weight:500}
+  .blist-row .nm small{display:block;color:var(--ink-3);font-size:11.5px;font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .blist-row .tag{font-size:10.5px;font-weight:600;letter-spacing:.06em;color:var(--accent);text-transform:uppercase}
+
+  /* 예산 전환 바 */
+  .budgetbar{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    background:var(--surface);border:1px solid var(--line);border-radius:8px;
+    padding:10px 14px;margin-bottom:14px;
+  }
+  .budgetbar .lb{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);flex:none}
+  .budgetbar select{
+    flex:1;min-width:180px;padding:7px 10px;font:inherit;font-size:13.5px;font-weight:500;
+    background:var(--surface-2);color:var(--ink);border:1px solid var(--line);border-radius:var(--r);
+  }
+  .budgetbar .figs{
+    display:flex;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;
+    font-variant-numeric:tabular-nums;color:var(--ink-3);
+  }
+  .budgetbar .figs b{color:var(--ink);font-weight:500}
+
+  .cmd{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:15px 18px 13px;margin-bottom:16px}
+  .cmd label{display:block;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px}
+  #cmdIn{width:100%;padding:12px 14px;font:inherit;font-size:19px;font-weight:500;background:var(--surface-2);color:var(--ink);border:1px solid var(--line);border-radius:var(--r);font-variant-numeric:tabular-nums}
+  #cmdIn::placeholder{color:var(--ink-3);font-weight:400}
+  #cmdIn:disabled{opacity:.5;cursor:not-allowed}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:11px;min-height:26px}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:12.5px;background:var(--accent-soft);color:var(--accent);border:1px solid transparent;font-weight:500}
+  .chip b{font-weight:600}
+  .chip.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .chip.muted{background:var(--surface-2);color:var(--ink-3);border-color:var(--line)}
+  .chip.ok-chip{background:var(--ok-soft);color:var(--ok)}
+  .chip button{border:0;background:transparent;color:inherit;padding:0 0 0 2px;font-size:12.5px;font-weight:600;text-decoration:underline}
+
+  .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,340px);gap:18px;align-items:start}
+  @media (max-width:900px){.cols{grid-template-columns:minmax(0,1fr)}}
+
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .panel+.panel{margin-top:16px}
+  .panel-hd{padding:11px 16px;border-bottom:1px solid var(--line-2);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .panel-hd h2{margin:0;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+  .panel-bd{padding:15px 16px}
+
+  .doc-body{padding:32px 38px 36px;font-family:var(--doc);font-size:15px;line-height:1.95;color:var(--ink)}
+  @media (max-width:560px){.doc-body{padding:22px 18px 26px}}
+  .doc-title{font-size:19px;font-weight:500;text-align:center;margin:0 0 24px;letter-spacing:.02em;text-wrap:balance}
+  .doc-lead{margin:0 0 20px}
+  .doc-list{margin:0;padding:0;list-style:none}
+  .doc-list li{display:flex}
+  .doc-list .no{flex:none;width:2.1em}
+  .doc-list .lb{flex:none;width:5.6em;letter-spacing:.02em}
+  .doc-list .vl{flex:1;min-width:0;overflow-wrap:anywhere}
+  .doc-num{font-variant-numeric:tabular-nums}
+  .doc-attach{margin:24px 0 0}
+  .doc-end{margin-left:.9em}
+  .doc-empty{padding:56px 24px;text-align:center;color:var(--ink-3);font-family:var(--sans);font-size:13px;line-height:1.8}
+  .doc-empty strong{display:block;color:var(--ink-2);font-size:14.5px;font-weight:600;margin-bottom:6px}
+  .doc-empty code{font-family:var(--mono);background:var(--surface-2);border:1px solid var(--line);border-radius:4px;padding:2px 7px;font-size:12.5px;color:var(--ink)}
+  .doc-empty .btn{margin-top:14px}
+
+  .meter-bar{display:flex;height:8px;border-radius:99px;overflow:hidden;background:var(--line-2);border:1px solid var(--line)}
+  .meter-bar i{display:block;height:100%}
+  .seg-prev{background:var(--spent)}.seg-now{background:var(--accent)}.seg-over{background:var(--warn)}
+  .legend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:11px}
+  .legend div{display:flex;flex-direction:column;gap:1px;min-width:0}
+  .legend dt{margin:0;font-size:11px;color:var(--ink-3);display:flex;align-items:center;gap:5px}
+  .legend dt::before{content:"";width:7px;height:7px;border-radius:2px;background:currentColor;flex:none}
+  .legend .l-prev dt{color:var(--spent)}.legend .l-now dt{color:var(--accent)}
+  .legend .l-left dt{color:var(--ok)}.legend .l-left.neg dt{color:var(--warn)}
+  .legend dd{margin:0;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;font-weight:500}
+  .legend .l-left.neg dd{color:var(--warn)}
+  .budget-total{font-family:var(--mono);font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums;margin:0 0 9px}
+  .flag{display:block;margin-top:11px;padding:9px 11px;border-radius:var(--r);font-size:12.5px;line-height:1.55}
+  .flag.warn{background:var(--warn-soft);color:var(--warn)}
+  .flag.ok{background:var(--ok-soft);color:var(--ok)}
+  .flag b{font-weight:600}
+
+  table.led{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.led th{text-align:left;font-weight:500;color:var(--ink-3);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:0 6px 6px;border-bottom:1px solid var(--line-2)}
+  table.led td{padding:6px;border-bottom:1px solid var(--line-2)}
+  table.led tr:last-child td{border-bottom:0}
+  table.led .num{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  table.led .act{text-align:right;width:1%;white-space:nowrap}
+  table.led .act button{white-space:nowrap}
+  table.led td:nth-child(2){overflow-wrap:anywhere}
+  .led-scroll{overflow-x:auto;max-height:236px;overflow-y:auto}
+  .empty-row{color:var(--ink-3);font-size:12.5px;margin:0}
+
+
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field+.field{margin-top:13px}
+  .field label{font-size:12px;font-weight:500;color:var(--ink-2)}
+  .hint{font-size:11.5px;color:var(--ink-3);font-weight:400}
+  input[type=text],textarea,select{width:100%;padding:8px 10px;font:inherit;font-size:13.5px;background:var(--surface-2);color:var(--ink);border:1px solid var(--line);border-radius:var(--r)}
+  textarea{resize:vertical;min-height:58px;line-height:1.55}
+  textarea.code{font-family:var(--mono);font-size:11.5px;min-height:150px;word-break:break-all}
+  .mono-in{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:520px){.row2{grid-template-columns:1fr}}
+
+  dialog{border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);padding:0;width:min(600px,calc(100vw - 32px))}
+  dialog::backdrop{background:rgba(8,12,18,.55)}
+  .dlg-hd{padding:14px 18px;border-bottom:1px solid var(--line-2);display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .dlg-hd h3{margin:0;font-size:14px;font-weight:600}
+  .dlg-bd{padding:18px;overflow-y:auto;max-height:min(62vh,540px)}
+  .dlg-ft{padding:13px 18px;border-top:1px solid var(--line-2);display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+  .dlg-ft .spacer{flex:1}
+  .sec-lb{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin:22px 0 10px;padding-top:16px;border-top:1px solid var(--line-2)}
+  .sec-lb:first-child{margin-top:0;padding-top:0;border-top:0}
+  details.adv{margin-top:18px;padding-top:14px;border-top:1px solid var(--line-2)}
+  details.adv summary{font-size:12px;color:var(--ink-2);cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px}
+  details.adv summary::-webkit-details-marker{display:none}
+  details.adv summary::before{content:"▸";color:var(--ink-3);font-size:10px}
+  details.adv[open] summary::before{content:"▾"}
+  details.adv summary:hover{color:var(--ink)}
+  details.adv summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(8px);background:var(--ink);color:var(--paper);padding:9px 17px;border-radius:99px;font-size:13px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:90;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast-act{border:0;background:transparent;color:var(--paper);font:inherit;font-weight:600;text-decoration:underline;padding:0;flex:none}
+  .switch{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2);cursor:pointer}
+  .switch input{margin:0;accent-color:var(--accent)}
+  .foot{margin-top:14px;color:var(--ink-3);font-size:11.5px;line-height:1.7}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+<style>
+  /* 아티팩트 호스트가 넣어주던 기본값 — 직접 호스팅할 땐 직접 넣는다 */
+  html{color-scheme:light dark}
+  img{max-width:100%}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <header class="top">
+    <div class="brand">
+      <h1>지출의 신</h1>
+      <p>예산을 고르고 지출 제목과 금액만 한 줄로 치면 문서가 완성됩니다.</p>
+    </div>
+    <div class="top-actions">
+      <label class="switch" for="ilToggle"><input type="checkbox" id="ilToggle">일십·일백 표기</label>
+    </div>
+  </header>
+
+  <div class="budgetbar">
+    <span class="lb">예산</span>
+    <select id="budgetSel" aria-label="예산 선택"></select>
+    <button class="btn btn-sm" id="editBudgetBtn" type="button">이 예산 고치기</button>
+    <button class="btn btn-sm" id="newBudgetBtn" type="button">＋ 다른 예산 만들기</button>
+    <button class="btn btn-sm btn-danger" id="dropBudgetBtn" type="button">이 예산 삭제</button>
+    <button class="btn btn-sm btn-ghost" id="shareBtn" type="button">예산 목록</button>
+    <div class="figs" id="budgetFigs"></div>
+  </div>
+
+  <section class="cmd">
+    <label for="cmdIn">지출 제목 + 금액</label>
+    <input type="text" id="cmdIn" autocomplete="off" spellcheck="false" placeholder="정비 비용 30000원">
+    <div class="chips" id="chips"></div>
+  </section>
+
+  <div class="cols">
+    <div>
+      <div class="panel">
+        <div class="panel-hd">
+          <h2>문서</h2>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sm" id="copyBtn" type="button" disabled>본문 복사</button>
+            <button class="btn btn-sm btn-primary" id="copyAllBtn" type="button" disabled>제목까지 복사</button>
+          </div>
+        </div>
+        <div id="docOut"></div>
+      </div>
+    </div>
+
+    <div>
+      <section class="panel">
+        <div class="panel-hd"><h2>예산 집행</h2><span class="hint" id="ratioHint"></span></div>
+        <div class="panel-bd">
+          <p class="budget-total" id="budgetTotal">예산액 —</p>
+          <div class="meter-bar" aria-hidden="true">
+            <i class="seg-prev" id="segPrev"></i><i class="seg-now" id="segNow"></i><i class="seg-over" id="segOver"></i>
+          </div>
+          <dl class="legend">
+            <div class="l-prev"><dt>기지출</dt><dd id="mPrev">0</dd></div>
+            <div class="l-now"><dt>이번</dt><dd id="mNow">0</dd></div>
+            <div class="l-left" id="leftBox"><dt>잔액</dt><dd id="mLeft">0</dd></div>
+          </dl>
+          <div class="flag ok" id="flagBox" hidden></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-hd">
+          <h2>집행 내역</h2>
+          <button class="btn btn-sm" id="recordBtn" type="button" disabled>기지출액에 더하기</button>
+        </div>
+        <div class="panel-bd" id="ledgerBox"></div>
+      </section>
+      <p class="foot" id="storeNote"></p>
+    </div>
+  </div>
+</div>
+
+<!-- 예산 편집 -->
+<dialog id="budgetDlg">
+  <form id="budgetForm">
+    <div class="dlg-hd">
+      <h3 id="budgetDlgTitle">예산 설정</h3>
+      <button class="btn btn-sm btn-ghost" type="button" data-close>닫기</button>
+    </div>
+    <div class="dlg-bd">
+      <p class="sec-lb">문서 붙여넣기</p>
+      <p class="hint" style="margin:0 0 9px">전에 쓰던 지출품의서를 통째로 붙여넣으면 아래 칸이 자동으로 채워집니다. 매번 달라지는 지출 제목 자리는 도구가 알아서 찾아 바꿉니다.</p>
+      <div class="field" style="margin-top:0">
+        <textarea id="pasteIn" class="code" placeholder="○○ 소모품비 지급&#10;&#10;○○ 소모품비를 아래와 같이 지급하고자 합니다.&#10;&#10;1. 예 산 액: 금0,000,000원&#10;2. 기지출액: 금0,000,000원&#10;3. 지 출 액: 00,000(금○○원)&#10;..."></textarea>
+      </div>
+      <button class="btn btn-sm btn-primary" id="parseBtn" type="button">분석해서 채우기</button>
+      <p class="hint" id="parseNote" style="margin:9px 0 0"></p>
+
+      <p class="sec-lb">예산</p>
+      <div class="field">
+        <label for="bName">예산 이름 <span class="hint">— 상단 목록에 표시됩니다</span></label>
+        <input type="text" id="bName" required placeholder="공용차량 유지·관리">
+      </div>
+      <div class="row2">
+        <div class="field" style="margin-top:0">
+          <label for="bBudget">1. 예산액</label>
+          <input type="text" id="bBudget" class="mono-in" inputmode="numeric" placeholder="0,000,000">
+        </div>
+        <div class="field" style="margin-top:0">
+          <label for="bOpening">2. 기지출액 기초</label>
+          <input type="text" id="bOpening" class="mono-in" inputmode="numeric" placeholder="0,000,000">
+        </div>
+      </div>
+      <span class="hint">지금까지 집행된 누계입니다. 문서를 붙여넣으면 그 문서의 <b>기지출액 + 지출액</b>으로 잡힙니다 — 붙여넣은 건도 이미 나간 돈이니까요. 여기에 앞으로의 집행이 더해집니다.</span>
+
+      <p class="sec-lb">문서 서식</p>
+      <div class="field" style="margin-top:0">
+        <label for="bContent">5. 지출내용</label>
+        <input type="text" id="bContent" placeholder="붙임참조">
+      </div>
+      <div class="field">
+        <label for="bTarget">6. 지출대상 기본값</label>
+        <input type="text" id="bTarget" placeholder="○○로 00(○○동) ○○상사   대표 ○○○">
+      </div>
+      <div class="field">
+        <label for="bMethod">7. 지출방법</label>
+        <input type="text" id="bMethod" placeholder="카드결제 [결제계좌: ○○ 000-0000-0000-00 ○○동주민센터]">
+      </div>
+      <div class="field">
+        <label for="bAccount">8. 예산과목</label>
+        <textarea id="bAccount" placeholder="정책)○○ 운영  단위)○○  세부)○○ 편성목)일반운영비  통계목)공공운영비"></textarea>
+      </div>
+      <div class="field">
+        <label for="bAttach">붙임 기본형</label>
+        <input type="text" id="bAttach" placeholder="세차비 신용카드 전표 1부.">
+      </div>
+
+      <details class="adv">
+        <summary>제목·본문 문구 보기</summary>
+        <div class="field" style="margin-top:12px">
+          <label for="bTitle">제목</label>
+          <input type="text" id="bTitle" placeholder="공용차량 세차비 지급">
+        </div>
+        <div class="field">
+          <label for="bLead">본문 첫 문장</label>
+          <input type="text" id="bLead" placeholder="공용차량 세차비를 아래와 같이 지급하고자 합니다.">
+        </div>
+        <p class="hint" style="margin:8px 0 0">문구는 붙여넣은 문서 그대로 저장됩니다. 여기 적힌 지출 제목이 있던 자리에 매번 입력한 제목이 들어가고, 조사(을/를)도 알맞게 바뀝니다. 보통 고칠 일이 없습니다.</p>
+      </details>
+    </div>
+    <div class="dlg-ft">
+      <button class="btn btn-danger" type="button" id="delBudgetBtn">예산 삭제</button>
+      <span class="spacer"></span>
+      <button class="btn" type="button" data-close>취소</button>
+      <button class="btn btn-primary" type="submit">저장</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 내보내기 / 가져오기 -->
+<dialog id="shareDlg">
+  <div class="dlg-hd">
+    <h3>예산 목록</h3>
+    <button class="btn btn-sm btn-ghost" type="button" data-close>닫기</button>
+  </div>
+  <div class="dlg-bd">
+    <p class="sec-lb">등록된 예산</p>
+    <div id="bList"></div>
+
+    <p class="sec-lb">내보내기</p>
+    <p class="hint" style="margin:0 0 9px">아래 코드를 복사해 동료에게 전달하면, 같은 예산과 문서 서식을 그대로 쓸 수 있습니다. 집행 내역은 포함되지 않습니다.</p>
+    <div class="field" style="margin-top:0">
+      <label for="expOut" class="hint">현재 등록된 예산 전체</label>
+      <textarea id="expOut" class="code" readonly></textarea>
+    </div>
+    <button class="btn btn-sm" id="copyExpBtn" type="button">코드 복사</button>
+
+    <p class="sec-lb">가져오기</p>
+    <p class="hint" style="margin:0 0 9px">받은 코드를 붙여넣고 가져오면 기존 예산에 <b>추가</b>됩니다. 지금 있는 예산은 지워지지 않습니다.</p>
+    <div class="field" style="margin-top:0">
+      <label for="impIn" class="hint">받은 코드</label>
+      <textarea id="impIn" class="code" placeholder='{"v":1,"budgets":[ ... ]}'></textarea>
+    </div>
+    <button class="btn btn-sm btn-primary" id="doImpBtn" type="button">가져오기</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- 금액 → 한글 ---------- */
+  var D=["","일","이","삼","사","오","육","칠","팔","구"],
+      S=["","십","백","천"], B=["","만","억","조","경"];
+  function toHangul(n,keepOne){
+    n=Math.floor(Math.abs(Number(n)||0));
+    if(!n) return "영";
+    var s=String(n),g=[],i;
+    for(i=s.length;i>0;i-=4) g.push(s.slice(Math.max(0,i-4),i));
+    var out="";
+    for(var k=g.length-1;k>=0;k--){
+      var gv=parseInt(g[k],10); if(!gv) continue;
+      var t=String(gv),pad="0000".slice(t.length)+t,part="";
+      for(i=0;i<4;i++){
+        var d=+pad[i],pos=3-i; if(!d) continue;
+        part += (d===1&&pos>0&&!keepOne) ? S[pos] : D[d]+S[pos];
+      }
+      out += part + B[k];
+    }
+    return out;
+  }
+  function comma(n){ return (Math.round(Number(n)||0)).toLocaleString("ko-KR"); }
+  function digits(v){ var s=String(v==null?"":v).replace(/[^0-9]/g,""); return s?parseInt(s,10):0; }
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+  function hasJong(w){
+    w=String(w||"").trim(); if(!w) return false;
+    var c=w.charCodeAt(w.length-1);
+    if(c<0xAC00||c>0xD7A3) return false;
+    return ((c-0xAC00)%28)!==0;
+  }
+  function eulReul(w){ return hasJong(w)?"을":"를"; }
+  function iGa(w){ return hasJong(w)?"이":"가"; }
+  function uid(p){ return p+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+  var BLANK={
+    name:"", budget:0, opening:0,
+    titlePattern:"{지출제목} 지급",
+    leadPattern:"{지출제목}{을를} 아래와 같이 지급하고자 합니다.",
+    content:"붙임참조", target:"", method:"", account:"",
+    attachPattern:"{지출제목} 신용카드 전표 1부."
+  };
+
+  /* ---------- 저장 ---------- */
+  var K_B="jp2.budgets", K_L="jp2.ledger", K_A="jp2.active", K_O="jp2.keepOne";
+  function lsGet(k,f){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):f; }catch(e){ return f; } }
+  function lsSet(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+
+  var state={ budgets:[], ledger:{}, activeId:null, keepOne:false, parsed:null,
+              recordedKey:null, recordedPrev:null };
+  function clearRecorded(){ state.recordedKey=null; state.recordedPrev=null; }
+
+  var $=function(id){ return document.getElementById(id); }, els={};
+  ["cmdIn","chips","docOut","copyBtn","copyAllBtn","recordBtn","ledgerBox","segPrev","segNow","segOver",
+   "mPrev","mNow","mLeft","leftBox","flagBox","budgetTotal","ratioHint",
+   "budgetSel","budgetFigs","newBudgetBtn","editBudgetBtn","dropBudgetBtn","shareBtn","budgetDlg","budgetForm","budgetDlgTitle",
+   "delBudgetBtn",
+   "shareDlg","bList","expOut","copyExpBtn","impIn","doImpBtn","toast","ilToggle","storeNote",
+   "pasteIn","parseBtn","parseNote"].forEach(function(k){ els[k]=$(k); });
+
+  function save(){ lsSet(K_B,state.budgets); lsSet(K_L,state.ledger); lsSet(K_A,state.activeId); }
+  function active(){
+    for(var i=0;i<state.budgets.length;i++) if(state.budgets[i].id===state.activeId) return state.budgets[i];
+    return null;
+  }
+  function entries(){ return (state.ledger[state.activeId]||[]).slice()
+      .sort(function(a,b){ return String(b.date||"").localeCompare(String(a.date||"")); }); }
+  function spentPrev(){
+    var b=active(); if(!b) return 0;
+    var s=digits(b.opening), l=state.ledger[b.id]||[];
+    for(var i=0;i<l.length;i++) s+=digits(l[i].amount);
+    return s;
+  }
+
+  function toast(m,actLabel,actFn){
+    els.toast.innerHTML="";
+    var s=document.createElement("span"); s.textContent=m; els.toast.appendChild(s);
+    if(actLabel&&actFn){
+      var b=document.createElement("button");
+      b.type="button"; b.className="toast-act"; b.textContent=actLabel;
+      b.addEventListener("click",function(){ hideToast(); actFn(); });
+      els.toast.appendChild(b); els.toast.style.pointerEvents="auto";
+    } else els.toast.style.pointerEvents="none";
+    els.toast.classList.add("show");
+    clearTimeout(toast._t); toast._t=setTimeout(hideToast, actLabel?6000:2100);
+  }
+  function hideToast(){ els.toast.classList.remove("show"); els.toast.style.pointerEvents="none"; }
+
+  /* ---------- 파싱 ---------- */
+  var RE=/^\s*(.*?)\s*([0-9][0-9,]*)\s*(만|천)?\s*원?\s*$/;
+  function parse(){
+    var raw=els.cmdIn.value, m=RE.exec(raw);
+    if(!m||!m[1].trim()) state.parsed = raw.trim()?{name:raw.trim(),amount:0,partial:true}:null;
+    else{
+      var n=digits(m[2]);
+      if(m[3]==="만") n*=10000; else if(m[3]==="천") n*=1000;
+      state.parsed={ name:m[1].trim(), amount:n, partial:false };
+    }
+    return state.parsed;
+  }
+  /* {지출제목}이 새 이름, {항목}은 예전에 저장된 예산을 위해 계속 받아준다 */
+  /* 예전 예산이 쓰던 표시자. 새 예산은 표시자 없이 원문을 그대로 저장한다. */
+  var SLOT=/\{(?:지출제목|항목)\}/g;
+  var SLOT1=/\{(?:지출제목|항목)\}/;
+  function fill(t,name){ return String(t||"").replace(SLOT,name).replace(/\{을를\}/g,eulReul(name)); }
+  function hasSlot(t){ return SLOT1.test(String(t||"")); }
+
+  /* 원문에서 sample(서식을 만들 때의 제목)이 있던 자리를 지금 친 제목으로 바꾼다.
+     "공용차량 세차비를 …" + (세차비 → 정비 비용) = "공용차량 정비 비용을 …"
+     조사는 새 제목의 받침에 맞춰 다시 붙인다. */
+  function swapTitle(text,sample,cur){
+    text=String(text||"");
+    if(!text) return "";
+    if(hasSlot(text)) return fill(text,cur);
+    if(!sample||sample===cur) return text;
+    var re=new RegExp(escRe(sample)+"(?:(을|를|은|는|이|가|와|과)(?![가-힣]))?","g");
+    return text.replace(re,function(m,j){
+      if(!j) return cur;
+      if(j==="을"||j==="를") return cur+eulReul(cur);
+      if(j==="은"||j==="는") return cur+(hasJong(cur)?"은":"는");
+      if(j==="이"||j==="가") return cur+iGa(cur);
+      return cur+(hasJong(cur)?"과":"와");
+    });
+  }
+
+  var LABELS=["예 산 액","기지출액","지 출 액","지출잔액","지출내용","지출대상","지출방법","예산과목"];
+
+  /* 이미 기록한 건이면, 기록 직전의 기지출액으로 문서를 고정한다.
+     안 그러면 방금 더한 금액이 기지출액에도 지출액에도 들어가 두 번 빠진다. */
+  function prevFor(p){
+    if(p&&!p.partial&&state.recordedKey===p.name+"|"+p.amount&&state.recordedPrev!=null)
+      return state.recordedPrev;
+    return spentPrev();
+  }
+
+  function build(){
+    var b=active(), p=state.parsed;
+    if(!b||!p||p.partial) return null;
+    var prev=prevFor(p), budget=digits(b.budget), left=budget-prev-p.amount;
+    return {
+      name:p.name, amount:p.amount, prev:prev, budget:budget, left:left,
+      title:swapTitle(b.titlePattern,b.sample,p.name), lead:swapTitle(b.leadPattern,b.sample,p.name),
+      rows:[
+        "금"+comma(budget)+"원", "금"+comma(prev)+"원",
+        comma(p.amount)+"(금"+toHangul(p.amount,state.keepOne)+"원)",
+        "금"+comma(left)+"원",
+        b.content||"붙임참조",
+        b.target||"", b.method||"", b.account||""
+      ],
+      attach:swapTitle(b.attachPattern,b.sample,p.name)
+    };
+  }
+  function docText(d,withTitle){
+    var L=[];
+    if(withTitle) L.push(d.title,"");
+    L.push(d.lead,"");
+    for(var i=0;i<8;i++) L.push((i+1)+". "+LABELS[i]+": "+d.rows[i]);
+    L.push("", d.attach?"붙임  "+d.attach+"  끝":"끝");
+    return L.join("\n");
+  }
+
+  /* ---------- 렌더 ---------- */
+  function renderBudgetBar(){
+    var h="";
+    for(var i=0;i<state.budgets.length;i++)
+      h+='<option value="'+esc(state.budgets[i].id)+'"'+(state.budgets[i].id===state.activeId?" selected":"")+'>'+
+         esc(state.budgets[i].name||"이름 없는 예산")+'</option>';
+    els.budgetSel.innerHTML=h||'<option value="">등록된 예산 없음</option>';
+    els.budgetSel.disabled=!state.budgets.length;
+    var b=active();
+    els.budgetFigs.innerHTML = b
+      ? '예산 <b>'+comma(b.budget)+'</b>원 · 기지출 <b>'+comma(spentPrev())+'</b>원 · 잔액 <b>'+comma(digits(b.budget)-spentPrev())+'</b>원'
+      : '';
+    els.editBudgetBtn.disabled=els.dropBudgetBtn.disabled=!b;
+    if(!b) disarmBar();
+    els.cmdIn.disabled=!b;
+    els.cmdIn.placeholder = b ? "정비 비용 30000원" : "먼저 예산을 추가하세요";
+  }
+
+  function renderChips(){
+    var p=state.parsed,h="";
+    if(!active()||!p){ els.chips.innerHTML=""; return; }
+    if(p.partial) h='<span class="chip muted">금액을 함께 적어주세요 — 예: '+esc(p.name)+' 30000</span>';
+    else{
+      h+='<span class="chip">제목 <b>'+esc(p.name)+'</b></span>';
+      h+='<span class="chip mono">금'+esc(toHangul(p.amount,state.keepOne))+'원</span>';
+      if(state.recordedKey===p.name+"|"+p.amount) h+='<span class="chip ok-chip">기지출액에 반영됨</span>';
+    }
+    els.chips.innerHTML=h;
+  }
+
+
+  function renderDoc(){
+    var d=build();
+    els.copyBtn.disabled=els.copyAllBtn.disabled=!d;
+    els.recordBtn.disabled=!d||d.amount<=0;
+    if(!d){
+      els.docOut.innerHTML = active()
+        ? '<div class="doc-empty"><strong>한 줄만 입력하세요</strong><code>세차비 6000</code> &nbsp;<code>정비 비용 30000원</code> &nbsp;<code>유류비 5만원</code></div>'
+        : '<div class="doc-empty"><strong>예산을 먼저 등록하세요</strong>예산액·지출대상·결제계좌·예산과목을 한 번만 넣어두면<br>그다음부터는 지출 제목과 금액만 치면 됩니다.<br><button class="btn btn-primary" type="button" id="emptyNew">＋ 예산 추가</button></div>';
+      var en=$("emptyNew"); if(en) en.addEventListener("click",function(){ openBudget(null); });
+      return;
+    }
+    var items="";
+    for(var i=0;i<8;i++)
+      items+='<li><span class="no">'+(i+1)+'.</span><span class="lb">'+esc(LABELS[i])+':</span>'+
+             '<span class="vl'+(i<4?' doc-num':'')+'">'+esc(d.rows[i])+'</span></li>';
+    els.docOut.innerHTML='<div class="doc-body"><h3 class="doc-title">'+esc(d.title)+'</h3>'+
+      '<p class="doc-lead">'+esc(d.lead)+'</p><ol class="doc-list">'+items+'</ol>'+
+      '<p class="doc-attach">'+(d.attach?'붙임&nbsp;&nbsp;'+esc(d.attach)+'<span class="doc-end">끝</span>':'끝')+'</p></div>';
+  }
+
+
+  function renderMeter(){
+    var b=active();
+    if(!b){ els.budgetTotal.textContent="예산액 —"; els.segPrev.style.width=els.segNow.style.width=els.segOver.style.width="0%";
+      els.mPrev.textContent=els.mNow.textContent=els.mLeft.textContent="0"; els.flagBox.hidden=true; els.ratioHint.textContent=""; return; }
+    var d=build(), budget=digits(b.budget);
+    var prev=d?d.prev:spentPrev(), amt=d?d.amount:0, left=budget-prev-amt;
+    els.budgetTotal.textContent="예산액 "+comma(budget)+"원";
+    var total=Math.max(budget,prev+amt)||1, over=left<0?-left:0;
+    els.segPrev.style.width=(Math.min(prev,total)/total*100)+"%";
+    els.segNow.style.width=(Math.min(amt,Math.max(0,total-prev))/total*100)+"%";
+    els.segOver.style.width=(over/total*100)+"%";
+    els.mPrev.textContent=comma(prev); els.mNow.textContent=comma(amt); els.mLeft.textContent=comma(left);
+    els.leftBox.classList.toggle("neg",left<0);
+    els.ratioHint.textContent = budget?Math.round((prev+amt)/budget*100)+"% 집행":"";
+    if(left<0){ els.flagBox.hidden=false; els.flagBox.className="flag warn";
+      els.flagBox.innerHTML='예산을 <b>'+comma(-left)+'원</b> 초과합니다. 금액이나 예산액을 확인하세요.'; }
+    else if(amt>0){ els.flagBox.hidden=false; els.flagBox.className="flag ok";
+      els.flagBox.innerHTML=comma(budget)+' − '+comma(prev)+' − '+comma(amt)+' = <b>'+comma(left)+'원</b>'; }
+    else els.flagBox.hidden=true;
+  }
+
+  function renderLedger(){
+    var b=active();
+    if(!b){ els.ledgerBox.innerHTML='<p class="empty-row">예산을 등록하면 집행 내역이 여기에 쌓입니다.</p>'; return; }
+    var list=entries();
+    if(!list.length){
+      els.ledgerBox.innerHTML='<p class="empty-row">기록된 집행이 없습니다. 기초값 '+comma(b.opening)+'원만 반영됩니다.</p>';
+      return;
+    }
+    var rows="";
+    for(var i=0;i<list.length;i++){
+      var e=list[i];
+      rows+='<tr><td>'+esc(String(e.date||"").slice(5))+'</td><td>'+esc(e.name||"")+'</td>'+
+            '<td class="num">'+comma(e.amount)+'</td>'+
+            '<td class="act"><button class="btn btn-sm btn-ghost btn-danger" type="button" data-del="'+esc(e.id)+'">삭제</button></td></tr>';
+    }
+    els.ledgerBox.innerHTML='<div class="led-scroll"><table class="led"><thead><tr>'+
+      '<th>일자</th><th>지출 제목</th><th style="text-align:right">금액</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+      '<p class="hint" style="margin:10px 0 0">기초 '+comma(b.opening)+'원 + 기록 '+
+      comma(spentPrev()-digits(b.opening))+'원 = 기지출액 '+comma(spentPrev())+'원</p>';
+  }
+
+  function renderAll(){ renderBudgetBar(); renderChips(); renderDoc(); renderMeter(); renderLedger(); }
+
+  /* ---------- 예산 전환 ---------- */
+  els.budgetSel.addEventListener("change",function(){
+    state.activeId=els.budgetSel.value; clearRecorded();
+    save(); parse(); renderAll();
+  });
+
+  /* ---------- 입력 ---------- */
+  els.cmdIn.addEventListener("input",function(){ clearRecorded(); parse(); renderAll(); });
+  els.ilToggle.addEventListener("change",function(){
+    state.keepOne=els.ilToggle.checked; lsSet(K_O,state.keepOne); renderAll();
+  });
+
+  /* ---------- 복사 + 기록 ---------- */
+  function key(d){ return d.name+"|"+d.amount; }
+  function record(d,viaCopy){
+    if(!d||d.amount<=0) return;
+    if(state.recordedKey===key(d)){ if(viaCopy) toast("복사했습니다 · 이미 기지출액에 반영된 건입니다"); return; }
+    var t=new Date();
+    var ds=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");
+    var e={ id:uid("l"), date:ds, name:d.name, amount:d.amount }, bid=state.activeId;
+    var prevBefore=spentPrev();
+    (state.ledger[bid]=state.ledger[bid]||[]).push(e);
+    state.recordedKey=key(d); state.recordedPrev=prevBefore;
+    save(); renderAll();
+    toast((viaCopy?"복사 완료 · ":"")+"다음 문서의 기지출액은 "+comma(spentPrev())+"원","되돌리기",function(){
+      state.ledger[bid]=(state.ledger[bid]||[]).filter(function(x){ return x.id!==e.id; });
+      clearRecorded(); save(); renderAll(); toast("되돌렸습니다");
+    });
+  }
+  function copy(withTitle){
+    var d=build(); if(!d) return;
+    var text=docText(d,withTitle), ok=function(){ record(d,true); };
+    if(navigator.clipboard&&navigator.clipboard.writeText)
+      navigator.clipboard.writeText(text).then(ok,function(){ fb(text,ok); });
+    else fb(text,ok);
+  }
+  function fb(text,ok){
+    var ta=document.createElement("textarea");
+    ta.value=text; ta.style.cssText="position:fixed;top:-1000px;left:0;opacity:0";
+    document.body.appendChild(ta); ta.select();
+    var done=false; try{ done=document.execCommand("copy"); }catch(e){}
+    document.body.removeChild(ta);
+    done?ok():toast("복사하지 못했습니다. 문서를 직접 선택해 주세요.");
+  }
+  els.copyBtn.addEventListener("click",function(){ copy(false); });
+  els.copyAllBtn.addEventListener("click",function(){ copy(true); });
+  els.recordBtn.addEventListener("click",function(){ record(build(),false); });
+  /* 샌드박스 iframe에서는 confirm()이 차단되므로 쓰지 않는다.
+     지우고 나서 되돌릴 수 있게 하는 편이 확인창보다 안전하고 빠르다. */
+  els.ledgerBox.addEventListener("click",function(ev){
+    var btn=ev.target.closest("[data-del]"); if(!btn) return;
+    var id=btn.getAttribute("data-del"), bid=state.activeId;
+    var list=state.ledger[bid]||[], gone=null, at=-1;
+    for(var i=0;i<list.length;i++) if(list[i].id===id){ gone=list[i]; at=i; break; }
+    if(!gone) return;
+    list.splice(at,1);
+    clearRecorded(); save(); renderAll();
+    toast(esc(gone.name)+" "+comma(gone.amount)+"원 지움 · 기지출액 "+comma(spentPrev())+"원",
+      "되돌리기", function(){
+        (state.ledger[bid]=state.ledger[bid]||[]).splice(Math.min(at,state.ledger[bid].length),0,gone);
+        save(); renderAll(); toast("되돌렸습니다");
+      });
+  });
+
+  /* ---------- 기존 문서 분해 ---------- */
+  var NUM_RE=/^\s*([1-8])\s*[.)]\s*(.+?)\s*[::]\s*(.*)$/;
+  var FIELD={1:"budget",2:"prevSpent",3:"amount",4:"left",5:"content",6:"target",7:"method",8:"account"};
+
+  function parseDoc(text){
+    var lines=String(text||"").replace(/\r/g,"").split("\n").map(function(s){ return s.trim(); });
+    var o={}, pre=[], i, m, seenNum=false;
+    for(i=0;i<lines.length;i++){
+      m=NUM_RE.exec(lines[i]);
+      if(m){ seenNum=true; o[FIELD[+m[1]]]=m[3].trim(); continue; }
+      var a=/^붙\s*임\s*[::]?\s*(.*)$/.exec(lines[i]);
+      if(a){ o.attach=a[1].replace(/\s*끝\s*\.?\s*$/,"").trim(); continue; }
+      if(!seenNum&&lines[i]&&!/^끝\.?$/.test(lines[i])) pre.push(lines[i]);
+    }
+    if(pre.length>=2){ o.title=pre[0]; o.lead=pre.slice(1).join(" "); }
+    else if(pre.length===1){
+      if(/합니다\.?$/.test(pre[0])) o.lead=pre[0]; else o.title=pre[0];
+    }
+    o.found=seenNum||!!o.title||!!o.lead;
+    return o;
+  }
+
+  function escRe(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); }
+
+  var clean=function(s){ return String(s||"").replace(/[.,]+$/,""); };
+  var dropJosa=function(s){ return String(s||"").replace(/(을|를|은|는|이|가|와|과)$/,""); };
+
+  /* 제목(없으면 본문)과 붙임에 공통으로 나오는 가장 긴 어절 묶음을 항목으로 본다.
+     본문에서는 "세차비를"처럼 조사가 붙으므로 떼고 비교한다. */
+  function guessItem(title,attach,lead){
+    var aj=String(attach||"").split(/\s+/).filter(Boolean).map(clean).join(" ");
+    var srcs=[title,lead], s, i, len;
+    for(s=0;s<srcs.length;s++){
+      var tt=String(srcs[s]||"").split(/\s+/).filter(Boolean).map(clean);
+      if(!tt.length||!aj) continue;
+      var best="";
+      for(i=0;i<tt.length;i++)
+        for(len=tt.length-i;len>0;len--){
+          var arr=tt.slice(i,i+len);
+          arr[arr.length-1]=dropJosa(arr[arr.length-1]);
+          var seq=arr.join(" ");
+          if(seq&&seq.length>best.length&&aj.indexOf(seq)!==-1) best=seq;
+        }
+      if(best) return best;
+    }
+    /* 붙임이 없거나 안 겹치면 "○○ 지급" 바로 앞 어절을 항목으로 본다 */
+    var t2=String(title||lead||"").split(/\s+/).filter(Boolean).map(clean);
+    for(i=t2.length-1;i>0;i--)
+      if(/^(지급|집행|지출|구입|구매|정산)/.test(t2[i])) return dropJosa(t2[i-1]);
+    return t2.length>1?dropJosa(t2[1]):"";
+  }
+
+  /* 제목 줄이 없는 문서를 위해 본문에서 제목을 되살린다.
+     "공용차량 세차비를 아래와 같이 지급하고자 합니다." → "공용차량 세차비 지급" */
+  function titleFromLead(lead){
+    var m=/^(.*?)(?:을|를)\s*아래와\s*같이\s*(.*?)(?:하고자|하려|합니다)/.exec(String(lead||"").trim());
+    if(!m) return "";
+    return (m[1].trim()+" "+m[2].trim()).replace(/\s+/g," ").trim();
+  }
+
+  function patternize(s,item){
+    if(!s||!item) return s||"";
+    var re=new RegExp(escRe(item)+"\\s*(을|를)");
+    if(re.test(s)) return s.replace(re,"{지출제목}{을를}");
+    return s.split(item).join("{지출제목}");
+  }
+
+  els.parseBtn.addEventListener("click",function(){
+    var raw=els.pasteIn.value;
+    if(!raw.trim()){ els.parseNote.textContent="문서를 붙여넣어 주세요."; return; }
+    var o=parseDoc(raw);
+    if(!o.found){ els.parseNote.textContent="지출품의서 형식을 찾지 못했습니다. 「1. 예 산 액: …」 같은 번호 줄이 들어있는지 확인해 주세요."; return; }
+
+    var item=guessItem(o.title,o.attach,o.lead);
+    detectedItem=item||"";
+
+    var title=o.title||titleFromLead(o.lead);
+    if(title)   $("bTitle").value=title;
+    if(o.lead)  $("bLead").value=o.lead;
+    if(o.attach)$("bAttach").value=o.attach;
+    if(o.content)$("bContent").value=o.content;
+    if(o.target) $("bTarget").value=o.target;
+    if(o.method) $("bMethod").value=o.method;
+    if(o.account)$("bAccount").value=o.account;
+
+    var budget=digits(o.budget), prev=digits(o.prevSpent), amt=digits(o.amount);
+    if(budget) $("bBudget").value=comma(budget);
+    var opening=prev+amt;
+    if(opening) $("bOpening").value=comma(opening);
+
+    if(!$("bName").value.trim()){
+      var nm = o.account ? (/세부\)\s*([^편]+)/.exec(o.account)||[])[1] : "";
+      $("bName").value = (nm||"").trim() ||
+        String(o.title||"").split(/\s+/)[0] || "";
+    }
+
+    /* 붙여넣은 문서는 이미 집행이 끝난 건이므로,
+       다음 문서의 기지출액은 그 문서의 기지출액(2번) + 지출액(3번)이다. */
+    var msg=[];
+    if(amt) msg.push("기지출액 "+comma(prev)+" + 이 문서의 지출액 "+comma(amt)+" = 기초값 "+comma(opening)+"원");
+    else if(prev) msg.push("기초값 "+comma(prev)+"원");
+    msg.push("다음 문서는 여기서 이어집니다.");
+    els.parseNote.textContent=msg.join(" · ");
+    $("bName").focus();
+  });
+
+  /* ---------- 예산 편집 ---------- */
+  var editingBudget=null, detectedItem="";
+  function openBudget(id,openAdv){
+    editingBudget=id;
+    var b=null;
+    if(id) for(var i=0;i<state.budgets.length;i++) if(state.budgets[i].id===id) b=state.budgets[i];
+    var v=b||BLANK;
+    els.budgetDlgTitle.textContent = b?"예산 설정":"예산 추가";
+    $("bName").value=v.name||""; $("bBudget").value=v.budget?comma(v.budget):"";
+    $("bOpening").value=v.opening?comma(v.opening):"";
+    $("bTitle").value=v.titlePattern||""; $("bLead").value=v.leadPattern||"";
+    $("bContent").value=v.content||""; $("bTarget").value=v.target||"";
+    $("bMethod").value=v.method||""; $("bAccount").value=v.account||"";
+    $("bAttach").value=v.attachPattern||"";
+    detectedItem="";
+    els.pasteIn.value=""; els.parseNote.textContent="";
+    els.delBudgetBtn.style.display=b?"":"none";
+    disarmDel();
+    var adv=els.budgetDlg.querySelector("details.adv");
+    if(adv) adv.open=!!openAdv;
+    els.budgetDlg.showModal();
+    if(openAdv&&adv){ $("bTitle").focus(); }
+    else (b?$("bName"):els.pasteIn).focus();
+  }
+  ["bBudget","bOpening"].forEach(function(id){
+    $(id).addEventListener("input",function(){ var n=digits(this.value); this.value=n?comma(n):""; });
+  });
+  els.budgetForm.addEventListener("submit",function(ev){
+    ev.preventDefault();
+    var name=$("bName").value.trim(); if(!name) return;
+    /* 저장된 문구 안에서 "바뀌어야 할 자리"를 기억해 둔다 */
+    var sample=detectedItem||guessItem($("bTitle").value,$("bAttach").value,$("bLead").value);
+    var data={
+      name:name, sample:sample, budget:digits($("bBudget").value), opening:digits($("bOpening").value),
+      titlePattern:$("bTitle").value.trim()||BLANK.titlePattern,
+      leadPattern:$("bLead").value.trim()||BLANK.leadPattern,
+      content:$("bContent").value.trim()||"붙임참조",
+      target:$("bTarget").value.trim(), method:$("bMethod").value.trim(),
+      account:$("bAccount").value.trim(),
+      attachPattern:$("bAttach").value.trim()||BLANK.attachPattern
+    };
+    if(editingBudget){
+      for(var i=0;i<state.budgets.length;i++)
+        if(state.budgets[i].id===editingBudget) state.budgets[i]=Object.assign(state.budgets[i],data);
+    } else {
+      data.id=uid("b");
+      state.budgets.push(data); state.activeId=data.id;
+    }
+    var isNew=!editingBudget;
+    var first=detectedItem;
+    save(); els.budgetDlg.close();
+    if(first){ els.cmdIn.value=first+" "; clearRecorded(); }
+    parse(); renderAll();
+    toast(!isNew ? "예산 설정을 저장했습니다"
+        : "예산을 추가했습니다 — 지출 제목과 금액을 치면 됩니다");
+    els.cmdIn.focus();
+  });
+  /* 예산 삭제는 두 번 눌러야 실행된다 (confirm() 대신) */
+  var delArmed=false, delTimer=null;
+  function disarmDel(){
+    delArmed=false; clearTimeout(delTimer);
+    els.delBudgetBtn.textContent="예산 삭제";
+    els.delBudgetBtn.classList.remove("armed");
+  }
+  els.delBudgetBtn.addEventListener("click",function(){
+    if(!editingBudget) return;
+    if(!delArmed){
+      delArmed=true;
+      els.delBudgetBtn.textContent="한 번 더 누르면 삭제";
+      els.delBudgetBtn.classList.add("armed");
+      clearTimeout(delTimer); delTimer=setTimeout(disarmDel,5000);
+      return;
+    }
+    disarmDel();
+    state.budgets=state.budgets.filter(function(b){ return b.id!==editingBudget; });
+    delete state.ledger[editingBudget];
+    if(state.activeId===editingBudget) state.activeId=state.budgets.length?state.budgets[0].id:null;
+    save(); els.budgetDlg.close(); parse(); renderAll(); toast("예산을 지웠습니다");
+  });
+  els.newBudgetBtn.addEventListener("click",function(){ openBudget(null); });
+  els.editBudgetBtn.addEventListener("click",function(){ if(active()) openBudget(state.activeId); });
+
+  /* ---------- 내보내기 / 가져오기 ---------- */
+  /* 행마다 삭제를 두 번 눌러야 실행된다 (confirm() 대신) */
+  var rowArmed=null, rowTimer=null;
+
+  function renderBList(){
+    if(!state.budgets.length){
+      els.bList.innerHTML='<p class="empty-row">등록된 예산이 없습니다.</p>'; return;
+    }
+    var h="";
+    for(var i=0;i<state.budgets.length;i++){
+      var b=state.budgets[i], cur=b.id===state.activeId;
+      var spent=digits(b.opening);
+      var l=state.ledger[b.id]||[];
+      for(var j=0;j<l.length;j++) spent+=digits(l[j].amount);
+      var armed=rowArmed===b.id;
+      h+='<div class="blist-row'+(cur?" cur":"")+'">'+
+         '<div class="nm"><b>'+esc(b.name||"이름 없는 예산")+(cur?' <span class="tag">사용 중</span>':'')+'</b>'+
+         '<small>예산 '+comma(b.budget)+' · 잔액 '+comma(digits(b.budget)-spent)+
+         (l.length?' · 집행 '+l.length+'건':'')+'</small></div>'+
+         (cur?'':'<button class="btn btn-sm" type="button" data-use="'+esc(b.id)+'">사용</button>')+
+         '<button class="btn btn-sm btn-ghost" type="button" data-fix="'+esc(b.id)+'">고치기</button>'+
+         '<button class="btn btn-sm btn-ghost btn-danger'+(armed?" armed":"")+'" type="button" data-drop="'+esc(b.id)+'">'+
+         (armed?"한 번 더":"삭제")+'</button></div>';
+    }
+    els.bList.innerHTML=h;
+  }
+  function disarmRow(){ rowArmed=null; clearTimeout(rowTimer); renderBList(); }
+
+  els.bList.addEventListener("click",function(ev){
+    var u=ev.target.closest("[data-use]"), f=ev.target.closest("[data-fix]"), d=ev.target.closest("[data-drop]");
+    if(u){
+      state.activeId=u.getAttribute("data-use"); clearRecorded(); disarmRow();
+      save(); parse(); renderAll(); renderBList();
+      toast("“"+(active().name||"")+"”로 바꿨습니다");
+      return;
+    }
+    if(f){ els.shareDlg.close(); openBudget(f.getAttribute("data-fix")); return; }
+    if(d){
+      var id=d.getAttribute("data-drop");
+      if(rowArmed!==id){
+        rowArmed=id; clearTimeout(rowTimer); rowTimer=setTimeout(disarmRow,5000);
+        renderBList(); return;
+      }
+      clearTimeout(rowTimer); rowArmed=null;
+      var name=(state.budgets.filter(function(x){ return x.id===id; })[0]||{}).name||"";
+      state.budgets=state.budgets.filter(function(x){ return x.id!==id; });
+      delete state.ledger[id];
+      if(state.activeId===id) state.activeId=state.budgets.length?state.budgets[0].id:null;
+      clearRecorded(); save(); parse(); renderAll(); renderBList();
+      els.expOut.value=JSON.stringify({ v:1, budgets:state.budgets });
+      toast("“"+name+"”을(를) 지웠습니다");
+    }
+  });
+
+  /* 예산 줄에서 바로 삭제 — 역시 두 번 눌러야 실행된다 */
+  var barArmed=false, barTimer=null;
+  function disarmBar(){
+    barArmed=false; clearTimeout(barTimer);
+    els.dropBudgetBtn.textContent="이 예산 삭제";
+    els.dropBudgetBtn.classList.remove("armed");
+  }
+  els.dropBudgetBtn.addEventListener("click",function(){
+    var b=active(); if(!b) return;
+    if(!barArmed){
+      barArmed=true;
+      els.dropBudgetBtn.textContent="“"+(b.name||"")+"” 삭제 — 한 번 더";
+      els.dropBudgetBtn.classList.add("armed");
+      clearTimeout(barTimer); barTimer=setTimeout(disarmBar,5000);
+      return;
+    }
+    disarmBar();
+    var id=b.id, name=b.name||"";
+    state.budgets=state.budgets.filter(function(x){ return x.id!==id; });
+    delete state.ledger[id];
+    state.activeId=state.budgets.length?state.budgets[0].id:null;
+    clearRecorded(); els.cmdIn.value=""; save(); parse(); renderAll();
+    toast("“"+name+"”을(를) 지웠습니다");
+  });
+  els.budgetSel.addEventListener("change",disarmBar);
+
+  els.shareBtn.addEventListener("click",function(){
+    rowArmed=null; clearTimeout(rowTimer);
+    renderBList();
+    els.expOut.value=JSON.stringify({ v:1, budgets:state.budgets });
+    els.impIn.value="";
+    els.shareDlg.showModal();
+  });
+  els.copyExpBtn.addEventListener("click",function(){
+    var t=els.expOut.value, ok=function(){ toast("코드를 복사했습니다"); };
+    if(navigator.clipboard&&navigator.clipboard.writeText)
+      navigator.clipboard.writeText(t).then(ok,function(){ fb(t,ok); });
+    else fb(t,ok);
+  });
+  els.doImpBtn.addEventListener("click",function(){
+    var raw=els.impIn.value.trim();
+    if(!raw){ toast("코드를 붙여넣어 주세요"); return; }
+    var data;
+    try{ data=JSON.parse(raw); }catch(e){ toast("코드 형식이 올바르지 않습니다"); return; }
+    if(!data||!Array.isArray(data.budgets)||!data.budgets.length){ toast("가져올 예산이 없습니다"); return; }
+    var n=0;
+    data.budgets.forEach(function(b){
+      if(!b||typeof b!=="object"||!b.name) return;
+      var copy=Object.assign({},BLANK,b);
+      copy.id=uid("b");
+      state.budgets.push(copy); state.activeId=copy.id; n++;
+    });
+    if(!n){ toast("가져올 예산이 없습니다"); return; }
+    save(); els.shareDlg.close(); parse(); renderAll();
+    toast("예산 "+n+"개를 가져왔습니다");
+  });
+
+  document.addEventListener("click",function(ev){
+    if(ev.target.closest("[data-close]")){ var d=ev.target.closest("dialog"); if(d) d.close(); }
+  });
+
+  /* ---------- 시작 ---------- */
+  state.budgets=lsGet(K_B,[]);
+
+  /* 이미 저장된 예산 되살리기.
+     sample(바뀌어야 할 자리)이 없으면 저장된 문구에서 찾아내고,
+     제목이 표시자만 남아 앞말이 날아갔으면 본문에서 되살린다. */
+  (function repair(){
+    var changed=false;
+    for(var i=0;i<state.budgets.length;i++){
+      var b=state.budgets[i];
+      if(!b.sample){
+        b.sample=guessItem(b.titlePattern,b.attachPattern,b.leadPattern)||"";
+        if(b.sample) changed=true;
+      }
+      var bare=/^\s*\{(?:지출제목|항목)\}\s*\S*\s*$/.test(String(b.titlePattern||""));
+      if(bare||!String(b.titlePattern||"").trim()){
+        var t=titleFromLead(b.leadPattern);
+        if(t){ b.titlePattern=t; changed=true; }
+      }
+    }
+    if(changed) lsSet(K_B,state.budgets);
+  })();
+  state.ledger=lsGet(K_L,{});
+  state.activeId=lsGet(K_A,null);
+  state.keepOne=lsGet(K_O,false)===true;
+  if(state.budgets.length&&!active()) state.activeId=state.budgets[0].id;
+  els.ilToggle.checked=state.keepOne;
+  els.storeNote.textContent="예산·서식·집행 내역은 이 브라우저에만 저장됩니다. 다른 기기나 다른 사람과는 공유되지 않습니다.";
+  parse(); renderAll();
+
+  if(active()) els.cmdIn.focus();
+  else openBudget(null);   // 처음 열면 서식 입력창부터
+})();
+</script>
+
+</body>
+</html>
