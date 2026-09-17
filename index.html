@@ -182,6 +182,31 @@
   details.adv summary:hover{color:var(--ink)}
   details.adv summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
 
+  .help ol.steps{margin:0;padding:0;list-style:none;counter-reset:st}
+  .help ol.steps li{position:relative;padding-left:38px;counter-increment:st}
+  .help ol.steps li+li{margin-top:20px;padding-top:20px;border-top:1px solid var(--line-2)}
+  .help ol.steps li::before{
+    content:counter(st);position:absolute;left:0;top:1px;
+    width:25px;height:25px;border-radius:50%;background:var(--accent);color:var(--accent-ink);
+    font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;
+  }
+  .help ol.steps li+li::before{top:21px}
+  .help h4{margin:0 0 6px;font-size:14px;font-weight:600}
+  .help p{margin:0 0 6px;font-size:13px;line-height:1.65}
+  .help p:last-child{margin-bottom:0}
+  .help .sub{color:var(--ink-2);font-size:12.5px}
+  .help .ex{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+  .help code{
+    font-family:var(--mono);font-size:12.5px;background:var(--surface-2);
+    border:1px solid var(--line);border-radius:4px;padding:3px 9px;color:var(--ink);
+  }
+  .help table.help-tb{width:100%;border-collapse:collapse;font-size:12.5px}
+  .help table.help-tb td{padding:8px 10px;border-bottom:1px solid var(--line-2);vertical-align:top}
+  .help table.help-tb tr:last-child td{border-bottom:0}
+  .help table.help-tb td:first-child{color:var(--ink-2);width:42%}
+  .help ul.notes{margin:0;padding-left:18px;font-size:12.5px;line-height:1.7;color:var(--ink-2)}
+  .help ul.notes li+li{margin-top:7px}
+  .help ul.notes b{color:var(--ink);font-weight:600}
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(8px);background:var(--ink);color:var(--paper);padding:9px 17px;border-radius:99px;font-size:13px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:90;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px)}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .toast-act{border:0;background:transparent;color:var(--paper);font:inherit;font-weight:600;text-decoration:underline;padding:0;flex:none}
@@ -207,6 +232,7 @@
     </div>
     <div class="top-actions">
       <label class="switch" for="ilToggle"><input type="checkbox" id="ilToggle">일십·일백 표기</label>
+      <button class="btn btn-sm" id="helpBtn" type="button">사용법</button>
     </div>
   </header>
 
@@ -346,6 +372,51 @@
   </form>
 </dialog>
 
+<!-- 사용법 -->
+<dialog id="helpDlg">
+  <div class="dlg-hd">
+    <h3>사용법</h3>
+    <button class="btn btn-sm btn-ghost" type="button" data-close>닫기</button>
+  </div>
+  <div class="dlg-bd help">
+    <ol class="steps">
+      <li>
+        <h4>처음 한 번만 — 예산 등록</h4>
+        <p>쓰시던 지출품의서를 <b>제목부터 「끝」까지 통째로 복사</b>해서 맨 위 칸에 붙여넣고 <b>「분석해서 채우기」</b>를 누르세요.</p>
+        <p class="sub">예산액, 기지출액, 지출대상, 결제계좌, 예산과목이 한 번에 채워집니다. 예산 이름만 확인하고 저장하시면 됩니다.</p>
+      </li>
+      <li>
+        <h4>매번 — 한 줄만 입력</h4>
+        <p class="ex"><code>정비 비용 30000</code></p>
+        <p class="sub">이렇게 쓰셔도 모두 인식합니다.</p>
+        <p class="ex"><code>세차비 6000</code> <code>유류비 5만원</code> <code>물건 구입 128,000원</code></p>
+      </li>
+      <li>
+        <h4>복사해서 붙여넣기</h4>
+        <p><b>「제목까지 복사」</b>를 누르고 한글(HWP)에 붙여넣으면 끝입니다.</p>
+        <p class="sub">복사하는 순간 <b>기지출액에 자동으로 더해집니다.</b> 따로 기록하실 필요가 없습니다. 잘못 누르셨다면 아래 알림의 <b>되돌리기</b>를 누르세요.</p>
+      </li>
+    </ol>
+
+    <p class="sec-lb">가끔 필요할 때</p>
+    <table class="help-tb">
+      <tr><td>기록을 하나 지우고 싶을 때</td><td>우측 <b>집행 내역</b>에서 그 줄의 <b>삭제</b></td></tr>
+      <tr><td>예산액이 바뀌었을 때</td><td>상단 <b>이 예산 고치기</b></td></tr>
+      <tr><td>예산과목이 다른 지출일 때</td><td>상단 <b>＋ 다른 예산 만들기</b> → 그 문서를 붙여넣기</td></tr>
+      <tr><td>연도가 바뀌었을 때</td><td><b>이 예산 고치기</b> → 예산액 새로 입력, 기초값 <code>0</code></td></tr>
+      <tr><td>동료에게 넘길 때</td><td><b>예산 목록</b> → 내보내기 → 코드 전달</td></tr>
+    </table>
+
+    <p class="sec-lb">알아두실 점</p>
+    <ul class="notes">
+      <li><b>금액 말고는 손댈 것이 없습니다.</b> 제목과 금액만 치시면 나머지는 저장된 서식에서 나옵니다.</li>
+      <li><b>내 브라우저에만 저장됩니다.</b> 서버로 전송되지 않습니다. 회사 PC와 노트북은 각각 따로이므로, 같은 예산을 양쪽에서 쓰시려면 기지출액 관리는 한쪽에서만 하시는 편이 안전합니다.</li>
+      <li>붙여넣기로 잡은 <b>기지출액 기초</b>는 그 문서의 기지출액 + 지출액입니다. 그 건이 아직 집행 전이라면 기초값을 낮춰 주세요.</li>
+    </ul>
+  </div>
+  <div class="dlg-ft"><button class="btn btn-primary" type="button" data-close>닫기</button></div>
+</dialog>
+
 <!-- 내보내기 / 가져오기 -->
 <dialog id="shareDlg">
   <div class="dlg-hd">
@@ -436,7 +507,7 @@
    "mPrev","mNow","mLeft","leftBox","flagBox","budgetTotal","ratioHint",
    "budgetSel","budgetFigs","newBudgetBtn","editBudgetBtn","dropBudgetBtn","shareBtn","budgetDlg","budgetForm","budgetDlgTitle",
    "delBudgetBtn",
-   "shareDlg","bList","expOut","copyExpBtn","impIn","doImpBtn","toast","ilToggle","storeNote",
+   "helpBtn","helpDlg","shareDlg","bList","expOut","copyExpBtn","impIn","doImpBtn","toast","ilToggle","storeNote",
    "pasteIn","parseBtn","parseNote"].forEach(function(k){ els[k]=$(k); });
 
   function save(){ lsSet(K_B,state.budgets); lsSet(K_L,state.ledger); lsSet(K_A,state.activeId); }
@@ -967,6 +1038,8 @@
     toast("“"+name+"”을(를) 지웠습니다");
   });
   els.budgetSel.addEventListener("change",disarmBar);
+
+  els.helpBtn.addEventListener("click",function(){ els.helpDlg.showModal(); });
 
   els.shareBtn.addEventListener("click",function(){
     rowArmed=null; clearTimeout(rowTimer);
