@@ -899,25 +899,39 @@
   var clean=function(s){ return String(s||"").replace(/[.,]+$/,""); };
   var dropJosa=function(s){ return String(s||"").replace(/(을|를|은|는|이|가|와|과)$/,""); };
 
-  /* 제목(없으면 본문)과 붙임에 공통으로 나오는 가장 긴 어절 묶음을 항목으로 본다.
+  /* 어절 배열 안에 연속된 어절 묶음이 통째로 들어 있는지 본다.
+     문자열 indexOf 로 하면 "지급"이 "지급내역" 안에 걸려 엉뚱한 말을 잡는다. */
+  function seqIn(hay,needle){
+    for(var i=0;i+needle.length<=hay.length;i++){
+      var ok=true;
+      for(var j=0;j<needle.length;j++) if(hay[i+j]!==needle[j]){ ok=false; break; }
+      if(ok) return true;
+    }
+    return false;
+  }
+
+  /* 제목(없으면 본문)과 붙임에 공통으로 나오는 가장 긴 어절 묶음을 바뀔 자리로 본다.
      본문에서는 "세차비를"처럼 조사가 붙으므로 떼고 비교한다. */
   function guessItem(title,attach,lead){
-    var aj=String(attach||"").split(/\s+/).filter(Boolean).map(clean).join(" ");
-    var srcs=[title,lead], s, i, len;
+    var at=String(attach||"").split(/\s+/).filter(Boolean).map(clean);
+    var srcs=[title,lead], s,i,len;
     for(s=0;s<srcs.length;s++){
       var tt=String(srcs[s]||"").split(/\s+/).filter(Boolean).map(clean);
-      if(!tt.length||!aj) continue;
+      if(!tt.length||!at.length) continue;
       var best="";
       for(i=0;i<tt.length;i++)
         for(len=tt.length-i;len>0;len--){
-          var arr=tt.slice(i,i+len);
+          var arr=tt.slice(i,i+len).slice();
           arr[arr.length-1]=dropJosa(arr[arr.length-1]);
+          if(!arr[arr.length-1]) continue;
           var seq=arr.join(" ");
-          if(seq&&seq.length>best.length&&aj.indexOf(seq)!==-1) best=seq;
+          if(seq.length>best.length&&seqIn(at,arr)) best=seq;
         }
       if(best) return best;
     }
-    /* 붙임이 없거나 안 겹치면 "○○ 지급" 바로 앞 어절을 항목으로 본다 */
+    /* 붙임과 안 겹치면 본문의 "○○를 아래와 같이" 에서 ○○ 를 쓴다 */
+    var m=/(\S+?)(?:을|를)\s*(?:아래와|다음과)\s*같이/.exec(String(lead||title||""));
+    if(m) return dropJosa(clean(m[1]));
     var t2=String(title||lead||"").split(/\s+/).filter(Boolean).map(clean);
     for(i=t2.length-1;i>0;i--)
       if(/^(지급|집행|지출|구입|구매|정산)/.test(t2[i])) return dropJosa(t2[i-1]);
@@ -962,9 +976,15 @@
       return 0;
     };
     var budget=pick("budget"), prev=pick("prev"), amt=pick("amount");
-    if(budget) $("bBudget").value=comma(budget);
-    var opening=prev+amt;
-    if(opening) $("bOpening").value=comma(opening);
+    var opening=prev+amt, keptMoney=false;
+    /* 이미 쓰고 있던 예산이면 금액은 건드리지 않는다.
+       덮어쓰면 그동안 쌓인 기지출액이 날아간다. */
+    var hadMoney=digits($("bBudget").value)>0||digits($("bOpening").value)>0;
+    if(hadMoney&&editingBudget){ keptMoney=true; }
+    else{
+      if(budget) $("bBudget").value=comma(budget);
+      if(opening) $("bOpening").value=comma(opening);
+    }
 
     /* 예산 이름은 예산과목 줄의 "세부)" 에서 따온다 */
     if(!$("bName").value.trim()){
@@ -978,9 +998,10 @@
     /* 붙여넣은 문서는 이미 집행이 끝난 건이므로,
        다음 문서의 기지출액은 그 문서의 기지출액(2번) + 지출액(3번)이다. */
     var msg=[];
-    if(amt) msg.push("기지출액 "+comma(prev)+" + 이 문서의 지출액 "+comma(amt)+" = 기초값 "+comma(opening)+"원");
+    msg.push("줄 "+o.rows.length+"개를 문서에서 읽었습니다.");
+    if(keptMoney) msg.push("예산액과 기지출액은 쓰시던 값을 그대로 두었습니다 — 덮어쓰면 그동안 쌓인 기지출액이 사라지기 때문입니다.");
+    else if(amt) msg.push("기지출액 "+comma(prev)+" + 이 문서의 지출액 "+comma(amt)+" = 기초값 "+comma(opening)+"원");
     else if(prev) msg.push("기초값 "+comma(prev)+"원");
-    msg.push("다음 문서는 여기서 이어집니다.");
     els.parseNote.textContent=msg.join(" · ");
     $("bName").focus();
   });
@@ -1037,7 +1058,10 @@
     renderRows(v.rows&&v.rows.length?v.rows:defaultRows());
     renderFonts(v.font||"함초롬바탕");
     detectedItem="";
-    els.pasteIn.value=""; els.parseNote.textContent="";
+    els.pasteIn.value="";
+    els.parseNote.textContent = (b&&b.migrated)
+      ? "예전 버전에서 등록된 예산입니다. 그때는 줄 이름을 저장하지 않아 기본값(기지출액·지 출 액…)이 들어가 있습니다. 원래 문서를 다시 붙여넣고 분석하시면 「기지급액·금회지급액」처럼 원본 그대로 채워집니다. 예산액과 기지출액은 그대로 유지됩니다."
+      : "";
     els.delBudgetBtn.style.display=b?"":"none";
     disarmDel();
     var adv=els.budgetDlg.querySelector("details.adv");
@@ -1061,7 +1085,7 @@
       mid:draft.mid||"", endMark:draft.endMark||"끝",
       attach:$("bAttach").value.replace(/\s+$/,""),
       font:els.bFont.value||"함초롬바탕",
-      rows:collectRows()
+      rows:collectRows(), migrated:false
     };
     if(editingBudget){
       for(var i=0;i<state.budgets.length;i++)
@@ -1275,6 +1299,7 @@
         b.rows[7].value=b.account||"";
         delete b.titlePattern; delete b.leadPattern; delete b.attachPattern;
         delete b.content; delete b.target; delete b.method; delete b.account;
+        b.migrated=true;
         changed=true;
       }
       if(!b.font){ b.font="함초롬바탕"; changed=true; }
